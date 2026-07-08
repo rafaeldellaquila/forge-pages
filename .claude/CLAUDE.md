@@ -328,14 +328,14 @@ Apply to every new endpoint, form, or database operation:
 
 > Update this section at the end of each phase.
 
-- [ ] Phase 1 — Scaffolding (monorepo, tooling, base config)
+- [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
 - [ ] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron)
 - [ ] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone)
 - [ ] Phase 4 — Frontend (Nuxt 3, tenant middleware, block components, Storybook)
 - [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
-**Project not yet initialized. Starting from Phase 1.**
+**Phase 1 complete. Next: Phase 2 — Infra (`docs/prompts/PHASE_2_INFRA.md`).**
 
 ---
 
