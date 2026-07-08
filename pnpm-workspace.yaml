@@ -1,0 +1,15 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+allowBuilds:
+  '@biomejs/biome': true
+minimumReleaseAgeExclude:
+  - '@biomejs/biome@2.5.3'
+  - '@biomejs/cli-darwin-arm64@2.5.3'
+  - '@biomejs/cli-darwin-x64@2.5.3'
+  - '@biomejs/cli-linux-arm64-musl@2.5.3'
+  - '@biomejs/cli-linux-arm64@2.5.3'
+  - '@biomejs/cli-linux-x64-musl@2.5.3'
+  - '@biomejs/cli-linux-x64@2.5.3'
+  - '@biomejs/cli-win32-arm64@2.5.3'
+  - '@biomejs/cli-win32-x64@2.5.3'

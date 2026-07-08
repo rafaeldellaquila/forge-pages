@@ -1,0 +1,224 @@
+[tools]
+node = "24"
+pnpm = "11"
+
+[env]
+PNPM_HOME = "~/.local/share/pnpm"
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+# ─── Dev servers ─────────────────────────────────────────────────────────────
+
+[tasks.dev]
+description = "Start Nuxt and Strapi in parallel"
+run = "pnpm --filter './apps/*' run dev"
+
+[tasks."dev:web"]
+description = "Start Nuxt dev server (port 3000)"
+run = "pnpm --filter web dev"
+
+[tasks."dev:cms"]
+description = "Start Strapi dev server (port 1337)"
+run = "pnpm --filter cms develop"
+
+[tasks.storybook]
+description = "Start Storybook for packages/ui (port 6006)"
+run = "pnpm --filter ui storybook"
+
+# ─── Quality ─────────────────────────────────────────────────────────────────
+
+[tasks.lint]
+description = "Run Biome check on all packages"
+run = "biome check ."
+
+[tasks."lint:fix"]
+description = "Run Biome with auto-fix"
+run = "biome check --write ."
+
+[tasks.typecheck]
+description = "TypeScript check all packages"
+run = "pnpm -r typecheck"
+
+# ─── Build ───────────────────────────────────────────────────────────────────
+
+[tasks."build:ui"]
+description = "Build packages/ui"
+run = "pnpm --filter ui build"
+
+[tasks."build:web"]
+description = "Build Nuxt for production"
+run = "pnpm --filter web build"
+
+# ─── Database ────────────────────────────────────────────────────────────────
+
+[tasks."db:migrate"]
+description = "Apply pending Supabase migrations (asks for confirmation)"
+run = """
+#!/usr/bin/env bash
+echo "⚠️  This will apply migrations to your linked Supabase project."
+echo "    Project: $(supabase status 2>/dev/null | grep 'API URL' | awk '{print $3}')"
+read -p "Continue? (y/N) " confirm
+if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+  supabase db push
+else
+  echo "Aborted."
+fi
+"""
+
+[tasks."db:seed"]
+description = "Run seed data for development"
+run = """
+#!/usr/bin/env bash
+echo "Applying seed files..."
+for f in infra/supabase/seed/*.sql; do
+  echo "  → $f"
+  supabase db execute < "$f"
+done
+echo "✓ Seed complete"
+"""
+
+[tasks."db:backup"]
+description = "Manual pg_dump to local backups/ directory"
+run = """
+#!/usr/bin/env bash
+if [ -z "$SUPABASE_DB_HOST" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+  echo "Error: SUPABASE_DB_HOST and SUPABASE_DB_PASSWORD must be set"
+  exit 1
+fi
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+mkdir -p backups
+PGPASSWORD=$SUPABASE_DB_PASSWORD pg_dump \
+  -h $SUPABASE_DB_HOST \
+  -p 5432 \
+  -U postgres \
+  -d postgres \
+  --no-password \
+  --format=custom \
+  --file=backups/backup_${TIMESTAMP}.dump
+echo "✓ Backup saved: backups/backup_${TIMESTAMP}.dump"
+"""
+
+# ─── Generators ──────────────────────────────────────────────────────────────
+
+[tasks."gen:migration"]
+description = "Generate a new timestamped SQL migration file. Usage: mise run gen:migration <name>"
+run = """
+#!/usr/bin/env bash
+NAME=${1:-unnamed}
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+FILE="infra/supabase/migrations/${TIMESTAMP}_${NAME}.sql"
+cat > "$FILE" << EOF
+-- Migration: ${NAME}
+-- Created at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+-- Description: TODO — describe what this migration does
+
+-- ─── UP ──────────────────────────────────────────────────────────────────────
+-- Write your migration SQL below.
+-- Note: Supabase migrations are irreversible once applied to production.
+-- There is no DOWN migration — plan accordingly.
+
+EOF
+echo "✓ Created: $FILE"
+echo ""
+echo "Reminder: if this migration adds new tables, also:"
+echo "  1. Add RLS policies"
+echo "  2. Update packages/types if new data contracts are introduced"
+"""
+
+[tasks."gen:block"]
+description = "Scaffold a new block component. Usage: mise run gen:block <name>"
+run = """
+#!/usr/bin/env bash
+NAME=${1:-unnamed}
+PASCAL=$(echo "$NAME" | awk -F'-' '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))} 1' OFS='')
+CAMEL=$(echo "$PASCAL" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')
+
+echo "Scaffolding block: ${PASCAL}Block"
+echo ""
+
+# 1. Vue component
+VUE_FILE="packages/ui/src/blocks/${PASCAL}Block.vue"
+if [ -f "$VUE_FILE" ]; then
+  echo "⚠️  $VUE_FILE already exists — skipping"
+else
+cat > "$VUE_FILE" << EOF
+<script setup lang="ts">
+import type { ${PASCAL}Block } from '@forge-pages/types'
+
+const props = defineProps<${PASCAL}Block>()
+</script>
+
+<template>
+  <section class="py-16">
+    <div class="container mx-auto px-4">
+      <!-- TODO: implement ${PASCAL}Block -->
+      <pre>{{ props }}</pre>
+    </div>
+  </section>
+</template>
+EOF
+echo "✓ Created: $VUE_FILE"
+fi
+
+# 2. Storybook story
+STORY_FILE="packages/ui/src/blocks/${PASCAL}Block.stories.ts"
+if [ -f "$STORY_FILE" ]; then
+  echo "⚠️  $STORY_FILE already exists — skipping"
+else
+cat > "$STORY_FILE" << EOF
+import type { Meta, StoryObj } from '@storybook/vue3'
+import ${PASCAL}Block from './${PASCAL}Block.vue'
+
+const meta: Meta<typeof ${PASCAL}Block> = {
+  title: 'Blocks/${PASCAL}',
+  component: ${PASCAL}Block,
+  tags: ['autodocs'],
+}
+
+export default meta
+
+type Story = StoryObj<typeof meta>
+
+export const Default: Story = {
+  args: {
+    __component: 'blocks.${NAME}',
+    // TODO: add required props from ${PASCAL}Block interface
+  },
+}
+EOF
+echo "✓ Created: $STORY_FILE"
+fi
+
+# 3. TypeScript interface
+TYPE_FILE="packages/types/src/blocks/${CAMEL}.ts"
+if [ -f "$TYPE_FILE" ]; then
+  echo "⚠️  $TYPE_FILE already exists — skipping"
+else
+cat > "$TYPE_FILE" << EOF
+export interface ${PASCAL}Block {
+  __component: 'blocks.${NAME}'
+  // TODO: add fields
+}
+EOF
+echo "✓ Created: $TYPE_FILE"
+fi
+
+echo ""
+echo "Next steps:"
+echo "  1. Define the interface in: $TYPE_FILE"
+echo "  2. Export from packages/types/src/blocks/index.ts"
+echo "  3. Add to BlockType union in packages/types/src/blocks/block-type.ts"
+echo "  4. Register in apps/web/utils/blockComponentMap.ts"
+echo "  5. Add component schema to Strapi via Content-Type Builder"
+echo "  6. Implement the Vue component in: $VUE_FILE"
+echo "  7. Add Storybook stories in: $STORY_FILE"
+"""
+
+# ─── Versioning ──────────────────────────────────────────────────────────────
+
+[tasks.changeset]
+description = "Create a new changeset entry"
+run = "pnpm changeset"
+
+[tasks.release]
+description = "Version packages and generate changelog"
+run = "pnpm changeset version && pnpm changeset publish"

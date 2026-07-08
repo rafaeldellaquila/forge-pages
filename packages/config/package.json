@@ -1,0 +1,9 @@
+{
+  "name": "@forge-pages/config",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./biome": "./biome.json",
+    "./tailwind": "./tailwind.css"
+  }
+}

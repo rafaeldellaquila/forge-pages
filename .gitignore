@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment — never commit real values
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Build outputs
+dist/
+.output/
+.nuxt/
+build/
+storybook-static/
+
+# Strapi
+apps/cms/.strapi/
+apps/cms/.tmp/
+apps/cms/public/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# MCP config (contains tokens)
+.vscode/mcp.json
+
+# Misc
+.cache/
+coverage/
