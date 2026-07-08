@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_blocks_value_propositions",
+  "info": {
+    "displayName": "Value Proposition",
+    "icon": "bulletList",
+    "description": "Headline plus a grid of value cards"
+  },
+  "options": {},
+  "attributes": {
+    "headline": { "type": "string", "required": true },
+    "text": { "type": "text" },
+    "cards": { "type": "component", "repeatable": true, "component": "shared.card" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_blocks_testimonials",
+  "info": {
+    "displayName": "Testimonials",
+    "icon": "quote",
+    "description": "Customer testimonials with ratings"
+  },
+  "options": {},
+  "attributes": {
+    "headline": { "type": "string", "required": true },
+    "items": { "type": "component", "repeatable": true, "component": "shared.testimonial" }
+  }
+}

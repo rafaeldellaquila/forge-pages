@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_blocks_heroes",
+  "info": {
+    "displayName": "Hero",
+    "icon": "picture",
+    "description": "Above-the-fold hero with headline and CTAs"
+  },
+  "options": {},
+  "attributes": {
+    "badgeText": { "type": "string" },
+    "headline": { "type": "string", "required": true },
+    "subheadline": { "type": "text", "required": true },
+    "ctaPrimaryLabel": { "type": "string", "required": true },
+    "ctaPrimaryLink": { "type": "string", "required": true },
+    "ctaSecondaryLabel": { "type": "string" },
+    "ctaSecondaryLink": { "type": "string" },
+    "image": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
+    "imageAlt": { "type": "string" }
+  }
+}
