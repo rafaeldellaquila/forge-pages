@@ -346,3 +346,9 @@ Apply to every new endpoint, form, or database operation:
 - **`packages/types`**: `"typescript": "workspace:*"` from the prompt is invalid (TypeScript is not a workspace package) — pinned `^5.6.0` matching root.
 - **`.npmrc` at root** pins `registry=https://registry.npmjs.org/`: the machine's global npm config points to a private CodeArtifact registry (work account) that 401s; this project uses public packages only.
 - **pnpm 11** requires `allowBuilds: { '@biomejs/biome': true }` in `pnpm-workspace.yaml` for Biome's postinstall (the package.json `pnpm.onlyBuiltDependencies` field is not honored).
+
+### 2026-07-08: Phase 2 learnings
+- **RLS policies alone don't grant access**: Supabase no longer auto-grants DML privileges on new tables — `anon`/`service_role` had only TRUNCATE/REFERENCES/TRIGGER. Migration `20240101000002_enable_rls.sql` now has an explicit GRANTS section (least privilege: anon = SELECT landing_pages + INSERT leads; service_role = full DML). Without it, the anon lead INSERT fails with `permission denied` despite the policy existing.
+- **Supabase CLI** installed as root devDependency (`supabase ^2.109.1`, needs `allowBuilds` entry). Local commands use `--workdir infra` since config lives at `infra/supabase/config.toml`.
+- **`[db.seed]` with `sql_paths = ["./seed/*.sql"]`** added to config.toml — without it `supabase db reset` ignores the `seed/` directory.
+- **Edge Function**: `Deno.env.get(...)!` replaced with `?? ''` (Biome errors on non-null assertions); `noConsole` disabled via biome.json override for `infra/supabase/functions/**` (console is the logging mechanism in Edge Functions).

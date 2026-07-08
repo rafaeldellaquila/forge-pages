@@ -3,6 +3,7 @@ packages:
   - 'packages/*'
 allowBuilds:
   '@biomejs/biome': true
+  supabase: true
 minimumReleaseAgeExclude:
   - '@biomejs/biome@2.5.3'
   - '@biomejs/cli-darwin-arm64@2.5.3'
