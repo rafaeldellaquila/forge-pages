@@ -17,7 +17,7 @@ Build the Nuxt 3 multi-tenant frontend. By the end of this phase: a visitor hitt
 1. Phases 1–3 complete and validated
 2. Strapi running locally at `http://localhost:1337`
 3. Supabase project accessible
-4. `STRAPI_API_TOKEN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY` available in environment
+4. `STRAPI_API_TOKEN`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` available in environment
 
 ---
 
@@ -118,14 +118,14 @@ export default defineNuxtConfig({
     // Private (server-side only)
     strapiUrl: process.env.STRAPI_URL,
     strapiApiToken: process.env.STRAPI_API_TOKEN,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseSecretKey: process.env.SUPABASE_SECRET_KEY,
     upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
     upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY,
     // Public (exposed to client)
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      supabasePublishableKey: process.env.SUPABASE_PUBLISHABLE_KEY,
       turnstileSiteKey: process.env.NUXT_PUBLIC_TURNSTILE_SITE_KEY,
       posthogKey: process.env.NUXT_PUBLIC_POSTHOG_KEY,
       posthogHost: process.env.NUXT_PUBLIC_POSTHOG_HOST,

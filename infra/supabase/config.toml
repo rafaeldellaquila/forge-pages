@@ -6,7 +6,7 @@ extra_search_path = ["public", "extensions"]
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [db.seed]
 enabled = true
@@ -16,9 +16,14 @@ sql_paths = ["./seed/*.sql"]
 enabled = true
 port = 54323
 
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 
 [storage]
 enabled = true
+
+# New API keys are not JWTs, so the platform JWT check must be off;
+# the function authorizes callers itself by comparing the apikey header.
+[functions.handle-lead-webhook]
+verify_jwt = false

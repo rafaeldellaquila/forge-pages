@@ -499,8 +499,8 @@ Create `.env.example` at root with all required keys:
 ```bash
 # ─── Supabase ────────────────────────────────────────────────────────────────
 SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=        # server-side / Edge Functions only
+SUPABASE_PUBLISHABLE_KEY=          # sb_publishable_...
+SUPABASE_SECRET_KEY=               # sb_secret_... — server-side / Edge Functions only
 
 # ─── Strapi ──────────────────────────────────────────────────────────────────
 STRAPI_URL=                        # e.g. https://cms.forge-pages.com

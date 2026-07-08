@@ -18,7 +18,7 @@ Set up all Supabase infrastructure: database schema, RLS policies, Edge Function
 2. Supabase CLI installed: `brew install supabase/tap/supabase`
 3. Logged in: `supabase login`
 4. Project linked: `supabase link --project-ref <your-project-ref>`
-5. Environment variables available (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+5. Environment variables available (SUPABASE_URL, SUPABASE_SECRET_KEY)
 
 ---
 
@@ -272,7 +272,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default ?? '',
 )
 
 interface LeadRecord {

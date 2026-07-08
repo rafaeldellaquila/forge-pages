@@ -72,8 +72,9 @@ Run through this checklist item by item. Do not mark a feature complete until al
   - Public insert: `for insert to anon with check (true)`
   - Internal only: `to service_role using (true) with check (true)`
 
-- [ ] **No service_role key exposed** in client-side code or public runtime config
-  - Check `nuxt.config.ts`: service role key must NOT be under `runtimeConfig.public`
+- [ ] **No secret key (`sb_secret_...`) exposed** in client-side code or public runtime config
+  - Check `nuxt.config.ts`: the secret key must NOT be under `runtimeConfig.public`
+  - Legacy anon/service_role JWT keys are not used in this project at all
 
 ---
 

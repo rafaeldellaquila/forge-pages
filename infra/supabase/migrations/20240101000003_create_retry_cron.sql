@@ -1,15 +1,23 @@
 -- Schedule webhook retry job every 5 minutes
 -- Picks up failed webhooks where next_retry_at <= now() and attempts < 3
+--
+-- Reads the project URL and secret API key from Vault. Set once per environment:
+--   select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
+--   select vault.create_secret('sb_secret_...', 'secret_key');
+--
+-- New API keys (sb_secret_...) are not JWTs: they must be sent on the apikey
+-- header — the platform rejects them on Authorization: Bearer with Invalid JWT.
 select cron.schedule(
   'retry-failed-webhooks',
   '*/5 * * * *',
   $$
     select
       net.http_post(
-        url := current_setting('app.supabase_url') || '/functions/v1/handle-lead-webhook',
+        url := (select decrypted_secret from vault.decrypted_secrets where name = 'project_url')
+          || '/functions/v1/handle-lead-webhook',
         headers := jsonb_build_object(
           'Content-Type', 'application/json',
-          'Authorization', 'Bearer ' || current_setting('app.supabase_service_role_key')
+          'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'secret_key')
         ),
         body := jsonb_build_object('retry', true)
       )

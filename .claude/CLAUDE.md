@@ -180,7 +180,7 @@ resolved_at     timestamptz
 created_at      timestamptz default now()
 ```
 
-**RLS**: All tables must have Row Level Security enabled. Service role key used only in Edge Functions (server-side). Anon key never has write access to `landing_pages` or `clients`.
+**RLS**: All tables must have Row Level Security enabled. **API keys**: this project uses the new Supabase key model only — publishable key (`sb_publishable_...`, maps to the `anon` DB role) for client-side reads, secret key (`sb_secret_...`, maps to `service_role`, bypasses RLS) for Edge Functions and server-side code. Legacy `anon`/`service_role` JWT keys are disabled. The publishable key never has write access to `landing_pages` or `clients`. Secret keys are not JWTs: send them on the `apikey` header, never `Authorization: Bearer`; in SQL (`pg_net`/webhooks) read them from Vault, never hardcode.
 
 ---
 
@@ -294,7 +294,7 @@ Apply to every new endpoint, form, or database operation:
 - [ ] Supabase RLS policy exists for affected tables
 - [ ] No secrets in code (Biome enforces via `security/noSecrets` rule)
 - [ ] Turnstile verified on all public-facing forms
-- [ ] Service role key only in server-side / Edge Functions
+- [ ] Secret key (`sb_secret_...`) only in server-side / Edge Functions — never in client code
 
 ---
 
@@ -315,7 +315,8 @@ Apply to every new endpoint, form, or database operation:
 - Do not use `any` in TypeScript — use `unknown` and narrow, or define a proper type
 - Do not add `.env` files with real values to the repo
 - Do not add new blocks without a corresponding type in `packages/types`
-- Do not use Supabase service role key in client-side or Nuxt public runtime config
+- Do not use the Supabase secret key (`sb_secret_...`) in client-side or Nuxt public runtime config
+- Do not use legacy `anon`/`service_role` JWT keys — this project uses publishable/secret keys only
 - Do not use `console.log` in production — use Sentry
 - Do not suggest Firebase, Directus, Nuxt Content, ESLint, Prettier, Yarn, or Next.js
 - Do not skip the security checklist for any new form or endpoint
@@ -329,13 +330,13 @@ Apply to every new endpoint, form, or database operation:
 > Update this section at the end of each phase.
 
 - [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
-- [ ] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron)
+- [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
 - [ ] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone)
 - [ ] Phase 4 — Frontend (Nuxt 3, tenant middleware, block components, Storybook)
 - [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
-**Phase 1 complete. Next: Phase 2 — Infra (`docs/prompts/PHASE_2_INFRA.md`).**
+**Phases 1–2 complete. Next: Phase 3 — CMS (`docs/prompts/PHASE_3_CMS.md`).**
 
 ---
 
@@ -352,3 +353,10 @@ Apply to every new endpoint, form, or database operation:
 - **Supabase CLI** installed as root devDependency (`supabase ^2.109.1`, needs `allowBuilds` entry). Local commands use `--workdir infra` since config lives at `infra/supabase/config.toml`.
 - **`[db.seed]` with `sql_paths = ["./seed/*.sql"]`** added to config.toml — without it `supabase db reset` ignores the `seed/` directory.
 - **Edge Function**: `Deno.env.get(...)!` replaced with `?? ''` (Biome errors on non-null assertions); `noConsole` disabled via biome.json override for `infra/supabase/functions/**` (console is the logging mechanism in Edge Functions).
+
+### 2026-07-08: Supabase cloud setup — new API keys (user decision)
+- **New API keys only**: publishable (`sb_publishable_...`) replaces anon, secret (`sb_secret_...`) replaces service_role. Env vars renamed to `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`. Legacy JWT keys to be disabled in the dashboard once nothing uses them.
+- **Edge Functions** read the secret via `JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')).default` (auto-injected JSON object keyed by key name); legacy var kept as fallback for local `functions serve`.
+- **pg_net/pg_cron/webhooks**: new keys are not JWTs — send on `apikey` header (Bearer → Invalid JWT). Retry-cron migration reads `project_url` and `secret_key` from Vault (`vault.create_secret(...)` once per environment).
+- **Cloud project**: `forge-page` (`wsfteewohhchwewwxnpn`, sa-east-1, **Postgres 17** — config.toml bumped from 15). CLI must always run with `--workdir infra`; a `supabase link` from repo root created a stray `supabase/` dir + an orphan `remote_schema` entry in the cloud migration history (repaired with `supabase migration repair --status reverted`).
+- **Deployed and E2E-verified 2026-07-08**: migrations pushed; Edge Function live with `verify_jwt = false` (new keys are not JWTs) + in-code `apikey` guard; Vault secrets `project_url`/`secret_key` set; Database Webhook `on-new-lead` (leads INSERT → handle-lead-webhook, `apikey` header) created in dashboard; legacy JWT keys disabled; full chain tested (publishable-key lead insert → webhook → Resend email, retry path exercised). `RESEND_FROM_EMAIL` temporarily `onboarding@resend.dev` until a sender domain is verified in Resend. WhatsApp channel dormant until `WHATSAPP_*` secrets are set (function skips unconfigured channels).

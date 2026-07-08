@@ -13,13 +13,10 @@ Allows Claude to read the live database schema, generate migrations, and validat
 ```json
 {
   "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest"],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "<from Supabase dashboard>"
-      }
-    }
+      "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=<your-project-ref>",
+    },
   }
 }
 ```

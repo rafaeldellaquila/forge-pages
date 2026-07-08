@@ -125,7 +125,7 @@ DATABASE_URL=
 
 # Supabase Storage (for media uploads)
 SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_SECRET_KEY=
 
 # Sentry
 SENTRY_DSN=
@@ -154,7 +154,7 @@ export default ({ env }: { env: (key: string) => string }) => ({
       provider: "@strapi/provider-upload-supabase",
       providerOptions: {
         apiUrl: env("SUPABASE_URL"),
-        apiKey: env("SUPABASE_SERVICE_ROLE_KEY"),
+        apiKey: env("SUPABASE_SECRET_KEY"),
         bucket: "landing-page-assets",
         directory: "",
         options: {}

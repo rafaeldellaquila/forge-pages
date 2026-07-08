@@ -58,6 +58,7 @@
     "includes": [
       "**",
       "!node_modules",
+      "!infra/supabase/.temp",
       "!dist",
       "!.nuxt",
       "!.output",

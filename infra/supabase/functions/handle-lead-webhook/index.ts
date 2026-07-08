@@ -1,9 +1,14 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-)
+// New API keys: SUPABASE_SECRET_KEYS holds a JSON object keyed by key name.
+// Falls back to the legacy variable for local `supabase functions serve`.
+function getSecretKey(): string {
+  const secretKeys = Deno.env.get('SUPABASE_SECRET_KEYS')
+  if (secretKeys) return JSON.parse(secretKeys).default ?? ''
+  return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+}
+
+const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', getSecretKey())
 
 interface LeadRecord {
   id: string
@@ -111,8 +116,17 @@ async function handleRetries(): Promise<void> {
   }
 }
 
+// Only notify through channels whose provider is configured — otherwise every
+// lead would enqueue retries doomed to fail (e.g. WhatsApp before onboarding).
+function configuredChannels(): Array<'email' | 'whatsapp'> {
+  const channels: Array<'email' | 'whatsapp'> = []
+  if (Deno.env.get('RESEND_API_KEY')) channels.push('email')
+  if (Deno.env.get('WHATSAPP_ACCESS_TOKEN')) channels.push('whatsapp')
+  return channels
+}
+
 async function handleNewLead(lead: LeadRecord): Promise<void> {
-  const channels: Array<'email' | 'whatsapp'> = ['email', 'whatsapp']
+  const channels = configuredChannels()
 
   await Promise.allSettled(
     channels.map(async (channel) => {
@@ -134,6 +148,16 @@ async function handleNewLead(lead: LeadRecord): Promise<void> {
 }
 
 Deno.serve(async (req: Request) => {
+  // verify_jwt is disabled (new API keys are not JWTs), so authorization
+  // happens here: callers must present the project secret key.
+  const apikey = req.headers.get('apikey')
+  if (!apikey || apikey !== getSecretKey()) {
+    return new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const payload = (await req.json()) as WebhookPayload
 

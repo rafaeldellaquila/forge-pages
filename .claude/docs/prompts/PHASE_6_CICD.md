@@ -78,8 +78,8 @@ jobs:
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       STRAPI_URL: ${{ secrets.STRAPI_URL }}
       STRAPI_API_TOKEN: ${{ secrets.STRAPI_API_TOKEN }}
       NUXT_SECRET_KEY: ${{ secrets.NUXT_SECRET_KEY }}
@@ -308,8 +308,8 @@ All secrets are configured in: Settings → Secrets and variables → Actions
 
 ### Supabase
 - `SUPABASE_URL` — Project URL
-- `SUPABASE_ANON_KEY` — Public anon key
-- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (server-side only)
+- `SUPABASE_PUBLISHABLE_KEY` — Publishable key (sb_publishable_..., safe for client)
+- `SUPABASE_SECRET_KEY` — Secret key (sb_secret_..., server-side only)
 - `SUPABASE_DB_HOST` — Direct database host (for pg_dump)
 - `SUPABASE_DB_PASSWORD` — Database password
 

@@ -37,6 +37,9 @@ Thumbs.db
 # MCP config (contains tokens)
 .vscode/mcp.json
 
+# Supabase CLI link artifacts
+infra/supabase/.temp/
+
 # Misc
 .cache/
 coverage/
