@@ -8,7 +8,7 @@
 
 ## 1. Product Overview
 
-**forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Nuxt 3 app serves all clients — the tenant is resolved from the `Host` header on every request. Content is managed via Strapi 5 CMS using Dynamic Zone (block-based composition). Leads captured on landing pages are stored in Supabase, notified via Resend (email) and WhatsApp Cloud API, and managed via NocoDB by non-technical partners.
+**forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Nuxt 4 app serves all clients — the tenant is resolved from the `Host` header on every request. Content is managed via Strapi 5 CMS using Dynamic Zone (block-based composition). Leads captured on landing pages are stored in Supabase, notified via Resend (email) and WhatsApp Cloud API, and managed via NocoDB by non-technical partners.
 
 **GitHub org**: `forge-co-tech`
 **Repository**: `forge-co-tech/forge-pages`
@@ -20,7 +20,7 @@
 
 | Layer                  | Tool                                       | Notes                              |
 | ---------------------- | ------------------------------------------ | ---------------------------------- |
-| Frontend               | Nuxt 3 (SSR + ISR)                         | Multi-tenant by domain             |
+| Frontend               | Nuxt 4 (SSR + ISR)                         | Multi-tenant by domain             |
 | Styling                | Tailwind CSS v4                            | CSS-native, no config file         |
 | CMS                    | Strapi 5                                   | Dynamic Zone for blocks            |
 | Database               | Supabase (PostgreSQL)                      | + Storage + Edge Functions + Auth  |
@@ -47,7 +47,7 @@
 
 **Decided and closed — do not suggest alternatives for:**
 
-- Next.js (decided: Nuxt 3)
+- Next.js (decided: Nuxt 4)
 - Firebase (decided: Supabase)
 - Directus / Nuxt Content (decided: Strapi 5)
 - ESLint / Prettier (decided: Biome)
@@ -60,7 +60,7 @@
 ```
 forge-pages/
 ├── apps/
-│   ├── web/                    # Nuxt 3 — multi-tenant frontend
+│   ├── web/                    # Nuxt 4 — multi-tenant frontend
 │   └── cms/                    # Strapi 5 — content management
 ├── packages/
 │   ├── ui/                     # Vue components + Storybook
@@ -332,7 +332,7 @@ Apply to every new endpoint, form, or database operation:
 - [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
 - [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
 - [ ] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone)
-- [ ] Phase 4 — Frontend (Nuxt 3, tenant middleware, block components, Storybook)
+- [ ] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook)
 - [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
@@ -360,3 +360,10 @@ Apply to every new endpoint, form, or database operation:
 - **pg_net/pg_cron/webhooks**: new keys are not JWTs — send on `apikey` header (Bearer → Invalid JWT). Retry-cron migration reads `project_url` and `secret_key` from Vault (`vault.create_secret(...)` once per environment).
 - **Cloud project**: `forge-page` (`wsfteewohhchwewwxnpn`, sa-east-1, **Postgres 17** — config.toml bumped from 15). CLI must always run with `--workdir infra`; a `supabase link` from repo root created a stray `supabase/` dir + an orphan `remote_schema` entry in the cloud migration history (repaired with `supabase migration repair --status reverted`).
 - **Deployed and E2E-verified 2026-07-08**: migrations pushed; Edge Function live with `verify_jwt = false` (new keys are not JWTs) + in-code `apikey` guard; Vault secrets `project_url`/`secret_key` set; Database Webhook `on-new-lead` (leads INSERT → handle-lead-webhook, `apikey` header) created in dashboard; legacy JWT keys disabled; full chain tested (publishable-key lead insert → webhook → Resend email, retry path exercised). `RESEND_FROM_EMAIL` temporarily `onboarding@resend.dev` until a sender domain is verified in Resend. WhatsApp channel dormant until `WHATSAPP_*` secrets are set (function skips unconfigured channels).
+
+### 2026-07-08: Dependency version audit (pre-Phase 3)
+- **Policy**: run `rtk proxy pnpm outdated -r` at the start of each phase; stay on latest stable unless an ecosystem peer blocks it — record any hold-back here with the reason.
+- **typescript 5.9.3 → 6.0.3**: our tsconfig is already modern (NodeNext, ES2022), unaffected by TS 6 removals of legacy targets/resolution; `vue-tsc` peers `>=5`. Fallback if Strapi 5 misbehaves in Phase 3: pin `^5.9` in `apps/cms` only.
+- **lint-staged 15.5.2 → 17.0.8**: requires Node ≥22.22 (we run 24 LTS); config format unchanged.
+- **Already latest**: biome 2.5.3, @changesets/cli 2.31.0, husky 9.1.7, supabase 2.109.1, pnpm 11.10.0, Node 24 (active LTS until Oct 2026 — Node 26 LTS lands then).
+- **Nuxt 4** (4.4.8, current stable) adopted as the frontend target (user decision, pre-code so zero migration cost); docs and Phase 4 prompt updated from Nuxt 3. Note Nuxt 4 default directory structure uses `app/`.

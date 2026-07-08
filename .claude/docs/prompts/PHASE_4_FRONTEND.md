@@ -1,4 +1,4 @@
-# Phase 4 — Frontend (Nuxt 3)
+# Phase 4 — Frontend (Nuxt 4)
 
 > **Before starting**: Read `CLAUDE.md` in full. Phases 1–3 must be complete.
 > **Commit strategy**: Ask before every commit. Use Conventional Commits.
@@ -8,7 +8,7 @@
 
 ## Objective
 
-Build the Nuxt 3 multi-tenant frontend. By the end of this phase: a visitor hitting any configured domain sees the correct landing page rendered from Strapi blocks. The lead form captures, validates, sanitizes, and submits leads to Supabase. Storybook shows all blocks in isolation. TypeScript strict passes.
+Build the Nuxt 4 multi-tenant frontend. By the end of this phase: a visitor hitting any configured domain sees the correct landing page rendered from Strapi blocks. The lead form captures, validates, sanitizes, and submits leads to Supabase. Storybook shows all blocks in isolation. TypeScript strict passes.
 
 ---
 
@@ -23,7 +23,7 @@ Build the Nuxt 3 multi-tenant frontend. By the end of this phase: a visitor hitt
 
 ## Tasks — execute in this exact order
 
-### 1. Initialize Nuxt 3 in apps/web
+### 1. Initialize Nuxt 4 in apps/web
 
 Ask for confirmation, then from the repo root:
 
@@ -680,7 +680,7 @@ Create stories for all 10 blocks following the same pattern.
 Ask for confirmation:
 ```bash
 git add apps/web/ packages/ui/
-git commit -m "feat(frontend): Nuxt 3 multi-tenant frontend with block rendering
+git commit -m "feat(frontend): Nuxt 4 multi-tenant frontend with block rendering
 
 - Multi-tenant middleware resolving tenant by Host header
 - ISR cache (1h) with CSS variable theme injection per tenant

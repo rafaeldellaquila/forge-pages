@@ -47,7 +47,7 @@ Allows Claude to open PRs, read issues, post review comments, and check workflow
 ---
 
 ### Context7 MCP
-Fetches up-to-date documentation for Nuxt 3, Strapi 5, Tailwind CSS v4, Supabase, and other stack dependencies. Critical because Tailwind 4 and Strapi 5 are recent releases that may differ from training data.
+Fetches up-to-date documentation for Nuxt 4, Strapi 5, Tailwind CSS v4, Supabase, and other stack dependencies. Critical because Tailwind 4 and Strapi 5 are recent releases that may differ from training data.
 
 ```json
 {
@@ -60,7 +60,7 @@ Fetches up-to-date documentation for Nuxt 3, Strapi 5, Tailwind CSS v4, Supabase
 }
 ```
 
-**Use when**: implementing anything with Tailwind 4 syntax, Strapi 5 APIs, or Nuxt 3 server routes. Always prefer Context7 docs over training data for these.
+**Use when**: implementing anything with Tailwind 4 syntax, Strapi 5 APIs, or Nuxt 4 server routes. Always prefer Context7 docs over training data for these.
 
 ---
 
