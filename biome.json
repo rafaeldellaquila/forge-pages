@@ -88,8 +88,10 @@
       "!**/.output",
       "!**/build",
       "!**/.strapi",
+      "!**/.strapi-updater.json",
       "!**/types/generated",
-      "!**/storybook-static"
+      "!**/storybook-static",
+      "!.claude"
     ]
   }
 }
