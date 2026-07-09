@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_blocks_services",
+  "info": {
+    "displayName": "Services",
+    "icon": "apps",
+    "description": "Tabbed services showcase"
+  },
+  "options": {},
+  "attributes": {
+    "headline": { "type": "string", "required": true },
+    "tabs": { "type": "component", "repeatable": true, "component": "shared.service-tab" }
+  }
+}

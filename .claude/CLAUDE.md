@@ -331,12 +331,12 @@ Apply to every new endpoint, form, or database operation:
 
 - [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
 - [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
-- [ ] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone)
+- [x] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone) — completed 2026-07-08, Strapi 5.50.0 booting locally against local Supabase Postgres, all 10 blocks + 9 shared components live, API route registered
 - [ ] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook)
 - [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
-**Phases 1–2 complete. Next: Phase 3 — CMS (`docs/prompts/PHASE_3_CMS.md`).**
+**Phases 1–3 complete. Next: Phase 4 — Frontend (`.claude/docs/prompts/PHASE_4_FRONTEND.md`).**
 
 ---
 
@@ -367,3 +367,16 @@ Apply to every new endpoint, form, or database operation:
 - **lint-staged 15.5.2 → 17.0.8**: requires Node ≥22.22 (we run 24 LTS); config format unchanged.
 - **Already latest**: biome 2.5.3, @changesets/cli 2.31.0, husky 9.1.7, supabase 2.109.1, pnpm 11.10.0, Node 24 (active LTS until Oct 2026 — Node 26 LTS lands then).
 - **Nuxt 4** (4.4.8, current stable) adopted as the frontend target (user decision, pre-code so zero migration cost); docs and Phase 4 prompt updated from Nuxt 3. Note Nuxt 4 default directory structure uses `app/`.
+
+### 2026-07-08: Phase 3 learnings (Strapi 5 CMS)
+- **camelCase field names (user decision)**: Strapi component/content-type attributes are camelCase (`ctaPrimaryLabel`, `menuLinks`, `seoOgImage`…) to match `packages/types` **exactly** — the prompt's snake_case JSON was overridden. Strapi's generated `types/generated/*.d.ts` confirmed field-for-field parity, so the REST API needs no snake→camel transform in Nuxt.
+- **Local Supabase as Strapi DB (user decision)**: `apps/cms/.env` points at the local stack (`127.0.0.1:54322`, `DATABASE_SSL=false`), keeping `strapi_*` tables out of the cloud project. Cloud connection deferred; set `DATABASE_URL` for prod.
+- **Upload provider**: the prompt's `@strapi/provider-upload-supabase` **does not exist on npm**; the only `strapi-provider-upload-supabase` is a dead 2022 Strapi-v4 package. Switched to the official `@strapi/provider-upload-aws-s3@5.50.0` (version-locked to core) pointed at Supabase Storage's S3 endpoint (`SUPABASE_S3_*` env vars, `forcePathStyle: true`). Bucket creation + credentials are a Phase 5 task; local disk upload is the fallback until then.
+- **`create-strapi` non-interactive**: needs `--install` (not just `--use-pnpm`) or it hangs on the "Install dependencies?" prompt and crashes (`ERR_USE_AFTER_CLOSE`). Flags used: `--typescript --use-pnpm --install --skip-cloud --no-example --no-git-init`.
+- **pnpm `allowBuilds`**: Strapi requires `@swc/core`, `core-js-pure`, `esbuild`, `sharp` set to `true` in `pnpm-workspace.yaml` (pnpm 11 leaves placeholder `set this to true or false` entries on first install).
+- **`apps/cms/tsconfig.json` does NOT extend `tsconfig.base.json`**: base uses `NodeNext` + `verbatimModuleSyntax` + `exactOptionalPropertyTypes`, incompatible with Strapi's CommonJS compilation. Kept Strapi's generated tsconfig and only added a `paths` alias for `@forge-pages/types` (types-only package → all imports are `import type`, erased at runtime).
+- **`apps/cms/biome.json`** needs `"root": false` (Biome 2 rejects nested root configs) and an `overrides` for `config/**` disabling `noNonNullAssertion` + `useNodejsImportProtocol` — Strapi's generated `config/admin.ts`/`database.ts` use `env(...)!` and bare `'path'`; keeping them pristine is `@strapi/upgrade`-safe. `noConsole` off cms-wide (Strapi logs via console).
+- **`--no-git-init` skips Strapi's `.gitignore`** — created `apps/cms/.gitignore` for `types/generated`, `.strapi-updater.json`, `.cache`, `exports`, etc. (root `.gitignore` already covers `.strapi`, `.tmp`, `dist`, `build`, uploads, `.env`).
+- **CORS**: Strapi 5.50 warns `enabled: true` on `strapi::cors` is insecure/deprecated — removed it, kept `{ headers, origin }` restricted to `localhost:3000` + `NUXT_PUBLIC_SITE_URL`.
+- **KNOWN DEVIATION — `FooterBlock.phones`**: `packages/types` types it as `string[]`, but Strapi can't model a repeatable scalar. Modeled as a repeatable `shared.phone` component (`{ label?, number }[]`) for editor UX, so the API returns objects, not strings. **Phase 4 must reconcile**: either map `.number` in the Nuxt renderer or update the type (needs approval — touches `packages/types`).
+- **Manual admin steps still pending (prompt Tasks 11 & 13, browser-only)**: create a test landing page (Hero + CTA Form), create the read-only `STRAPI_API_TOKEN` for Nuxt, and verify the live `?populate=blocks` API JSON. Admin user already registered locally.

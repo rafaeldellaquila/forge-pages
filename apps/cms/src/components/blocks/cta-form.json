@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_blocks_cta_forms",
+  "info": {
+    "displayName": "CTA Form",
+    "icon": "envelop",
+    "description": "Lead capture form with WhatsApp CTA"
+  },
+  "options": {},
+  "attributes": {
+    "headline": { "type": "string", "required": true },
+    "subheadline": { "type": "text" },
+    "selectOptions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.select-option"
+    },
+    "ctaLabel": { "type": "string", "required": true },
+    "whatsappNumber": { "type": "string", "required": true },
+    "whatsappMessage": { "type": "string" }
+  }
+}
