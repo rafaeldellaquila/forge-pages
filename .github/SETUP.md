@@ -57,6 +57,7 @@ present but commented out in each file — activate them when ready (see bottom)
 | `build.yml` | `nuxt build` on PRs | uncomment the `pull_request` trigger |
 | `backup.yml` | daily `pg_dump` → commit to repo | uncomment the `schedule` cron |
 | `claude-review.yml` | Claude reviews PR vs CLAUDE.md | uncomment the `pull_request` trigger (needs `ANTHROPIC_API_KEY`) |
+| `deploy.yml` | build (`cloudflare-pages` preset) + deploy web to Cloudflare Pages | uncomment the `push` trigger (needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`) |
 
 ### Activating a workflow
 1. Edit `.github/workflows/<workflow>.yml`

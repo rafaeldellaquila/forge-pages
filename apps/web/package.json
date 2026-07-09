@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
+    "build:cloudflare": "NITRO_PRESET=cloudflare-pages nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "preview:cloudflare": "pnpm dlx wrangler pages dev dist",
+    "deploy:cloudflare": "pnpm dlx wrangler pages deploy dist",
     "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare"
   },
