@@ -333,10 +333,10 @@ Apply to every new endpoint, form, or database operation:
 - [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
 - [x] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone) — completed 2026-07-08, Strapi 5.50.0 booting locally against local Supabase Postgres, all 10 blocks + 9 shared components live, API route registered
 - [x] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook) — completed 2026-07-09, multi-tenant page rendering blocks with per-tenant theming, lead capture E2E-verified against local Strapi + Supabase, Storybook builds all 10 blocks
-- [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
+- [x] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Flipt) — completed 2026-07-09, PostHog funnel + Sentry (@sentry/nuxt) + Flipt fail-open + Turnstile widget wired; Upstash/Resend/WhatsApp already done in Phases 2/4. UptimeRobot + NocoDB remain manual dashboard setup.
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
-**Phases 1–4 complete. Next: Phase 5 — Integrations (`.claude/docs/prompts/PHASE_5_INTEGRATIONS.md`).**
+**Phases 1–5 complete. Next: Phase 6 — CI/CD (`.claude/docs/prompts/PHASE_6_CICD.md`).**
 
 ---
 
@@ -393,3 +393,13 @@ Apply to every new endpoint, form, or database operation:
 - **nuxt-security** provides an `xssValidator` that **rejects** request bodies containing HTML/script with 400 — a defense layer on top of the route's `sanitize-html`. Verified: `<script>` payload → 400 before the handler; clean lead → inserted.
 - **Integrations deferred to Phase 5** (user decision): Turnstile + Upstash run only when their keys are set (graceful skip + `console.warn`); `@sentry/nuxt` module not added yet; PostHog keys wired in `runtimeConfig`/CSP only.
 - **Local dev domain alignment**: host `localhost:3000/3001` → port stripped → `localhost`. Seed `02_landing_pages.sql` domain changed `localhost:3000` → `localhost`; the Strapi entry `domain` was set to `localhost` directly in the DB (the read-only Nuxt token can't PUT) so the block fetch matches.
+
+### 2026-07-09: Phase 5 learnings (integrations)
+- **Upstash rate limit verified with real keys** (Phase 4 wiring): 3/IP/hr → 4th 429. Gotcha: the code reads `UPSTASH_REDIS_REST_TOKEN` — a `.env` typo (`UPSTASH_API_TOKEN`) silently no-ops the limiter. The REST token is ~60+ chars (not the 36-char DB password/management token) and pairs with the REST URL; `WRONGPASS` means URL/token mismatch.
+- **PostHog**: use the **public Project API Key** (`phc_…`), region host (`https://us.i.posthog.com` / `eu`). `posthog-js` client plugin gated on the Flipt `analytics.posthog` flag via `/api/flags`. Funnel tracking is **event-based**: `CtaFormBlock` (framework-agnostic, in `packages/ui`) `defineEmits(view/submit/success/error)`; `index.vue` binds those on the dynamic `<component>` to `useTracking()` — keeps `packages/ui` free of Nuxt composables (Storybook-safe). Nuxt plugins must return a consistent type — mixing bare `return` with `return { provide }` fails typecheck; use `return {}` on early exits.
+- **Sentry**: use **`@sentry/nuxt`** (`@sentry/nuxt/module` + `sentry.client.config.ts`/`sentry.server.config.ts`), NOT the prompt's deprecated `@nuxtjs/sentry` (no Nuxt 4 support). `Sentry.init` with `dsn: undefined` is a safe no-op. `@sentry/cli` + `core-js` need `allowBuilds` entries.
+- **Turnstile widget** wired **vanilla** (load `challenges.cloudflare.com/turnstile/v0/api.js`, `window.turnstile.render`) inside `CtaFormBlock` gated on an optional `turnstileSiteKey` prop passed from `index.vue` — the `@nuxtjs/turnstile` `<NuxtTurnstile>` component can't live in the framework-agnostic UI package. Server verify (Phase 4) unchanged. Verified with Cloudflare **test keys** (`1x…AA` site / `1x0…AA` secret always pass): submit → 200; real secret without a token → 400. Real keys kept commented in `apps/web/.env` until activated.
+- **Flipt**: `@flipt-io/flipt@1.5` API is `new FliptClient({ url, authenticationStrategy: new ClientTokenAuthentication(token) })` + `client.evaluation.boolean({ namespaceKey:'default', flagKey, entityId, context })` → `{ enabled }` (NOT the prompt's `authentication:{clientToken}`). `server/utils/flipt.ts` **fails open** (returns true on error); `infra/flipt/feature-flags.yaml` committed; `/api/flags` is the real consumer (gates PostHog). Live eval needs a running Flipt server (Koyeb/Docker) — deferred.
+- **Domainee** implemented as specced (`server/utils/domainee.ts` + token-guarded `server/api/admin/domains.post.ts`) but **untested — `api.domainee.io` contract is assumed**; needs a real account.
+- **Biome ignores extended**: `!**/.strapi-updater.json` + `!.claude` (Strapi update cache + Claude settings are generated/tooling, not source).
+- **Manual, not in repo**: UptimeRobot monitors + NocoDB partner workspace (dashboard setup per the phase prompt).

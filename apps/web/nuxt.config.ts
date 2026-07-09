@@ -5,7 +5,15 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['nuxt-security'],
+  modules: ['nuxt-security', '@sentry/nuxt/module'],
+
+  sentry: {
+    sourceMapsUploadOptions: {
+      org: 'forge-co-tech',
+      project: 'forge-pages',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    },
+  },
 
   // @forge-pages/ui ships raw .vue/.ts (no build step) — transpile it for SSR
   build: {
@@ -31,6 +39,7 @@ export default defineNuxtConfig({
     upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
     upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY,
+    adminApiToken: process.env.ADMIN_API_TOKEN,
     // Public — exposed to the client
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
@@ -48,7 +57,14 @@ export default defineNuxtConfig({
         'script-src': ["'self'", "'unsafe-inline'", 'https://challenges.cloudflare.com'],
         'frame-src': ["'self'", 'https://challenges.cloudflare.com'],
         'img-src': ["'self'", 'data:', '*.supabase.co'],
-        'connect-src': ["'self'", 'https://app.posthog.com', process.env.SUPABASE_URL ?? ''],
+        'connect-src': [
+          "'self'",
+          process.env.SUPABASE_URL ?? '',
+          process.env.NUXT_PUBLIC_POSTHOG_HOST ?? '',
+          'https://*.i.posthog.com',
+          'https://*.sentry.io',
+          'https://*.ingest.sentry.io',
+        ].filter(Boolean),
       },
       xFrameOptions: 'DENY',
       xContentTypeOptions: 'nosniff',

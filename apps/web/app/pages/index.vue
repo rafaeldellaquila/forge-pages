@@ -15,6 +15,9 @@ if (!tenant.value) {
 const { data } = await useFetch('/api/blocks', { key: 'landing-page-blocks' })
 const blocks = computed(() => data.value?.blocks ?? [])
 
+const config = useRuntimeConfig()
+const { trackFormView, trackFormSubmit, trackFormSuccess, trackFormError } = useTracking()
+
 const theme = tenant.value
 useHead({
   title: theme.seoTitle ?? undefined,
@@ -43,6 +46,11 @@ useHead({
         :is="blockComponentMap[block.__component]"
         v-if="blockComponentMap[block.__component]"
         v-bind="block"
+        :turnstile-site-key="config.public.turnstileSiteKey || undefined"
+        @view="trackFormView"
+        @submit="trackFormSubmit"
+        @success="trackFormSuccess"
+        @error="trackFormError"
       />
     </template>
   </main>

@@ -1,8 +1,24 @@
 <script setup lang="ts">
 import type { CtaFormBlock } from '@forge-pages/types'
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 
-const props = defineProps<CtaFormBlock>()
+const props = defineProps<CtaFormBlock & { turnstileSiteKey?: string }>()
+
+const emit = defineEmits<{
+  view: []
+  submit: [intent?: string]
+  success: [leadId: string]
+  error: [message: string]
+}>()
+
+interface TurnstileApi {
+  render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void }) => string
+}
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi
+  }
+}
 
 const form = reactive({
   name: '',
@@ -14,25 +30,58 @@ const form = reactive({
 
 const status = ref<'idle' | 'submitting' | 'success' | 'error'>('idle')
 const errorMessage = ref('')
+const turnstileToken = ref('')
+const turnstileEl = ref<HTMLDivElement | null>(null)
+
+const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+
+const renderTurnstile = (): void => {
+  if (!props.turnstileSiteKey || !turnstileEl.value || !window.turnstile) return
+  window.turnstile.render(turnstileEl.value, {
+    sitekey: props.turnstileSiteKey,
+    callback: (token) => {
+      turnstileToken.value = token
+    },
+  })
+}
+
+onMounted(() => {
+  emit('view')
+  if (!props.turnstileSiteKey) return
+  if (window.turnstile) {
+    renderTurnstile()
+    return
+  }
+  const script = document.createElement('script')
+  script.src = TURNSTILE_SRC
+  script.async = true
+  script.defer = true
+  script.onload = renderTurnstile
+  document.head.appendChild(script)
+})
 
 const submit = async (): Promise<void> => {
   status.value = 'submitting'
   errorMessage.value = ''
+  emit('submit', form.intent || undefined)
   try {
-    // Turnstile token is injected by the Nuxt layer in Phase 5 (bot protection).
     const res = await fetch('/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form }),
+      body: JSON.stringify({ ...form, turnstileToken: turnstileToken.value }),
     })
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { message?: string }
       throw new Error(data.message ?? 'Request failed')
     }
+    const data = (await res.json()) as { leadId: string }
     status.value = 'success'
+    emit('success', data.leadId)
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Something went wrong'
     status.value = 'error'
-    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong'
+    errorMessage.value = message
+    emit('error', message)
   }
 }
 </script>
@@ -88,7 +137,7 @@ const submit = async (): Promise<void> => {
           class="rounded-lg border border-gray-300 px-4 py-3 focus:border-[var(--tenant-primary)] focus:outline-none"
         />
 
-        <!-- Cloudflare Turnstile widget mounts here in Phase 5 -->
+        <div v-if="props.turnstileSiteKey" ref="turnstileEl" />
 
         <button
           type="submit"

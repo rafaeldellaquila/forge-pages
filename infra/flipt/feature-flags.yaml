@@ -1,0 +1,33 @@
+version: "1.1"
+namespace: default
+
+flags:
+  - key: blocks.services-tabs
+    name: "Services Block — Tabs Variant"
+    description: "Enable the tabs variant of the services block"
+    enabled: true
+    type: BOOLEAN_FLAG_TYPE
+
+  - key: notifications.whatsapp
+    name: "WhatsApp Notifications"
+    description: "Enable WhatsApp lead notifications via Cloud API"
+    enabled: true
+    type: BOOLEAN_FLAG_TYPE
+
+  - key: notifications.email
+    name: "Email Notifications"
+    description: "Enable email lead notifications via Resend"
+    enabled: true
+    type: BOOLEAN_FLAG_TYPE
+
+  - key: analytics.posthog
+    name: "PostHog Analytics"
+    description: "Enable PostHog page tracking and funnel analytics"
+    enabled: true
+    type: BOOLEAN_FLAG_TYPE
+
+  - key: cache.isr
+    name: "ISR Page Cache"
+    description: "Enable ISR caching for landing pages (1 hour TTL)"
+    enabled: true
+    type: BOOLEAN_FLAG_TYPE
