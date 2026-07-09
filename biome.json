@@ -52,19 +52,44 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/server/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.vue"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          },
+          "style": {
+            "useVueMultiWordComponentNames": "off"
+          }
+        }
+      }
     }
   ],
   "files": {
     "includes": [
       "**",
-      "!node_modules",
+      "!**/node_modules",
       "!infra/supabase/.temp",
-      "!dist",
-      "!.nuxt",
-      "!.output",
-      "!build",
-      "!.strapi",
-      "!storybook-static"
+      "!**/dist",
+      "!**/.nuxt",
+      "!**/.output",
+      "!**/build",
+      "!**/.strapi",
+      "!**/types/generated",
+      "!**/storybook-static"
     ]
   }
 }

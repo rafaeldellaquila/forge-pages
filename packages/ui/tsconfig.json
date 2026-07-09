@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "noEmit": true,
+    "paths": {
+      "@forge-pages/types": ["../types/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"],
+  "exclude": ["node_modules", "storybook-static"]
+}

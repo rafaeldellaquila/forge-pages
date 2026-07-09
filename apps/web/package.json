@@ -1,0 +1,31 @@
+{
+  "name": "web",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@forge-pages/types": "workspace:*",
+    "@forge-pages/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.110.1",
+    "@upstash/redis": "^1.38.0",
+    "nuxt": "^4.4.8",
+    "nuxt-security": "^2.6.0",
+    "sanitize-html": "^2.17.5",
+    "vue": "^3.5.39",
+    "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+    "@forge-pages/config": "workspace:*",
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/sanitize-html": "^2.16.1",
+    "vite": "^7.3.6",
+    "vue-tsc": "^3.3.7"
+  }
+}
