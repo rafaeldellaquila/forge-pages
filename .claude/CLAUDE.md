@@ -332,11 +332,11 @@ Apply to every new endpoint, form, or database operation:
 - [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
 - [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
 - [x] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone) — completed 2026-07-08, Strapi 5.50.0 booting locally against local Supabase Postgres, all 10 blocks + 9 shared components live, API route registered
-- [ ] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook)
+- [x] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook) — completed 2026-07-09, multi-tenant page rendering blocks with per-tenant theming, lead capture E2E-verified against local Strapi + Supabase, Storybook builds all 10 blocks
 - [ ] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Upstash, Resend, WhatsApp, Flipt)
 - [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
 
-**Phases 1–3 complete. Next: Phase 4 — Frontend (`.claude/docs/prompts/PHASE_4_FRONTEND.md`).**
+**Phases 1–4 complete. Next: Phase 5 — Integrations (`.claude/docs/prompts/PHASE_5_INTEGRATIONS.md`).**
 
 ---
 
@@ -379,4 +379,17 @@ Apply to every new endpoint, form, or database operation:
 - **`--no-git-init` skips Strapi's `.gitignore`** — created `apps/cms/.gitignore` for `types/generated`, `.strapi-updater.json`, `.cache`, `exports`, etc. (root `.gitignore` already covers `.strapi`, `.tmp`, `dist`, `build`, uploads, `.env`).
 - **CORS**: Strapi 5.50 warns `enabled: true` on `strapi::cors` is insecure/deprecated — removed it, kept `{ headers, origin }` restricted to `localhost:3000` + `NUXT_PUBLIC_SITE_URL`.
 - **KNOWN DEVIATION — `FooterBlock.phones`**: `packages/types` types it as `string[]`, but Strapi can't model a repeatable scalar. Modeled as a repeatable `shared.phone` component (`{ label?, number }[]`) for editor UX, so the API returns objects, not strings. **Phase 4 must reconcile**: either map `.number` in the Nuxt renderer or update the type (needs approval — touches `packages/types`).
-- **Manual admin steps still pending (prompt Tasks 11 & 13, browser-only)**: create a test landing page (Hero + CTA Form), create the read-only `STRAPI_API_TOKEN` for Nuxt, and verify the live `?populate=blocks` API JSON. Admin user already registered locally.
+- **Manual admin steps still pending (prompt Tasks 11 & 13, browser-only)**: create a test landing page (Hero + CTA Form), create the read-only `STRAPI_API_TOKEN` for Nuxt, and verify the live `?populate=blocks` API JSON. Admin user already registered locally. *(Done 2026-07-09: entry published, token in root `.env`, camelCase API shape confirmed against `packages/types`.)*
+
+### 2026-07-09: Phase 4 learnings (Nuxt 4 frontend)
+- **Prompt was Nuxt 3 / Tailwind v3 / Strapi v4 — corrected to our stack**: Nuxt 4.4.8 (`app/` dir, Vite 7), Tailwind v4 via `@tailwindcss/vite` plugin in `nuxt.config` `vite.plugins` (NOT `@nuxtjs/tailwindcss`), Strapi 5 flattened responses (`data[0].blocks`, no `.attributes`).
+- **`nuxi init` non-interactive** needs `-t minimal` (template is a required arg) + `--no-install --no-gitInit`.
+- **Tenant middleware** reads `landing_pages` with the **publishable** key (anon has SELECT + RLS published policy); column casing fixed via PostgREST aliasing in `.select('seoTitle:seo_title, …')` so the row matches camelCase `LandingPageConfig` (the prompt's `as LandingPageConfig` cast on snake_case was a lie). Lead insert uses the **secret** key server-side — the new `sb_secret_` key works fine through supabase-js (the Phase 2 Bearer/JWT caveat only applies to raw pg_net HTTP).
+- **Strapi fetch is proxied** through `server/api/blocks.get.ts` (not fetched from the page) so `STRAPI_API_TOKEN` never reaches the client and there's no server/client `useFetch` key mismatch. Deep populate `populate[blocks][populate]=*` returns nested component data (shallow `populate=blocks` does not).
+- **`@forge-pages/ui` ships raw `.vue`** — added to Nuxt `build.transpile`; Storybook `viteFinal` must push `@vitejs/plugin-vue` + `@tailwindcss/vite` explicitly (pnpm strict resolution stops `@storybook/vue3-vite` from auto-adding them). `storybook build` needs `CI=true`/`--disable-telemetry` to stay non-interactive. Stories import types from `@storybook/vue3` (needs to be a direct devDep).
+- **`packages/ui` tsconfig** extends base but overrides `lib` to include `DOM`/`DOM.Iterable` (base is ES2022-only; components use `fetch`). `exactOptionalPropertyTypes` (from base) forbids `foo: undefined` in story args — omit the field instead of setting it undefined.
+- **Dual Vite versions**: Storybook 8 pulled Vite 6 into `packages/ui`; pin `apps/web` to `vite@^7` (matches Nuxt 4) so `@tailwindcss/vite`'s plugin type matches Nuxt's expected `PluginOption` under `nuxt typecheck`.
+- **Biome ignore globs must be `**/`-prefixed** in this monorepo (`!**/.nuxt`, `!**/types/generated`, `!**/storybook-static`, …) — bare `!.nuxt` only matches the repo root, leaving nested generated dirs to blow up `biome check .`. Added `noConsole: off` override for `apps/web/server/**` (server logging) and disabled `noUnusedVariables`/`noUnusedImports`/`useVueMultiWordComponentNames` for `**/*.vue` (Biome can't see template-only usage).
+- **nuxt-security** provides an `xssValidator` that **rejects** request bodies containing HTML/script with 400 — a defense layer on top of the route's `sanitize-html`. Verified: `<script>` payload → 400 before the handler; clean lead → inserted.
+- **Integrations deferred to Phase 5** (user decision): Turnstile + Upstash run only when their keys are set (graceful skip + `console.warn`); `@sentry/nuxt` module not added yet; PostHog keys wired in `runtimeConfig`/CSP only.
+- **Local dev domain alignment**: host `localhost:3000/3001` → port stripped → `localhost`. Seed `02_landing_pages.sql` domain changed `localhost:3000` → `localhost`; the Strapi entry `domain` was set to `localhost` directly in the DB (the read-only Nuxt token can't PUT) so the block fetch matches.
