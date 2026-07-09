@@ -1,0 +1,51 @@
+name: Database Backup
+
+# Activate by uncommenting:
+# on:
+#   schedule:
+#     - cron: '0 3 * * *'   # Daily at 03:00 UTC
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: pg_dump → commit
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mkdir -p backups
+          pg_dump \
+            -h ${{ secrets.SUPABASE_DB_HOST }} \
+            -p 5432 \
+            -U postgres \
+            -d postgres \
+            --no-password \
+            --format=custom \
+            --file=backups/backup_${TIMESTAMP}.dump
+          # Keep only the most recent 30 backups
+          ls -t backups/*.dump | tail -n +31 | xargs -r rm
+
+      - name: Commit backup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          git diff --staged --quiet || git commit -m "chore(backup): daily database snapshot $(date +%Y-%m-%d)"
+          git push

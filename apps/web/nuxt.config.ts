@@ -39,7 +39,6 @@ export default defineNuxtConfig({
     upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL,
     upstashRedisRestToken: process.env.UPSTASH_REDIS_REST_TOKEN,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY,
-    adminApiToken: process.env.ADMIN_API_TOKEN,
     // Public — exposed to the client
     public: {
       supabaseUrl: process.env.SUPABASE_URL,

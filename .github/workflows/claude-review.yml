@@ -1,0 +1,72 @@
+name: Claude PR Review
+
+# Runs Claude Code to review PRs against CLAUDE.md conventions.
+# Activate by uncommenting the pull_request trigger.
+# Requires ANTHROPIC_API_KEY secret in repository settings.
+
+# on:
+#   pull_request:
+#     types: [opened, synchronize]
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+        type: string
+
+jobs:
+  review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+
+      - name: Get PR diff
+        run: git diff origin/main...HEAD > pr.diff
+
+      - name: Claude review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npx @anthropic-ai/claude-code \
+            --print \
+            "You are reviewing a pull request for the forge-pages project.
+
+            Read CLAUDE.md first, then review the following diff against the project conventions:
+            - TypeScript strict (no any)
+            - Biome formatting
+            - Security checklist (if new endpoint or form)
+            - packages/types updated if new data contracts
+            - Conventional Commits format
+            - No secrets in code
+            - No console.log in app code
+
+            Output a brief review with: APPROVED or NEEDS_CHANGES, followed by specific comments.
+
+            Diff:
+            $(cat pr.diff)" > review.md
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs')
+            const review = fs.readFileSync('review.md', 'utf8')
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ github.event.inputs.pr_number || github.event.pull_request.number }},
+              body: `## 🤖 Claude Code Review\n\n${review}`
+            })
