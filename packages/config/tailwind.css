@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Block components live in the sibling @forge-pages/ui package (symlinked into
+   node_modules, which Tailwind ignores by default) — scan their source explicitly
+   so their utility classes are generated. */
+@source "../ui/src";
+
 @theme {
   /* Base design tokens — overridden per tenant via CSS variables */
   --color-primary: var(--tenant-primary, #065a82);
