@@ -1,0 +1,65 @@
+---
+name: onboard-local
+description: Bootstrap and run the forge-pages stack locally. Installs dependencies, boots local Supabase (migrations + seed), generates apps/cms/.env + apps/web/.env, then starts Strapi + Nuxt (+ Storybook) and verifies the app is up. Use when someone wants to set up the project from a clean clone, get everything running locally, or onboard a new developer. Idempotent and non-destructive — safe to re-run.
+---
+
+# Onboard / run forge-pages locally
+
+Goal: from a clean clone (or a partial setup), get the whole stack running and verified.
+Full reference: `docs/LOCAL_DEVELOPMENT.md`. This skill automates it.
+
+The bundled `setup.sh` is **idempotent and non-destructive**: it never overwrites existing
+`.env` files and never resets an already-initialized database.
+
+## Steps
+
+1. **Bootstrap** — run the setup script and read its output:
+   ```bash
+   bash .claude/skills/onboard-local/setup.sh
+   ```
+   It checks Docker, runs `pnpm install`, starts local Supabase, applies migrations + seed
+   (first run only), and creates `apps/cms/.env` + `apps/web/.env` if missing (Supabase keys
+   pulled from `supabase status`; Strapi secrets generated).
+
+2. **Start Strapi** in the background and wait for `http://localhost:1337/admin` to answer:
+   ```bash
+   mise run dev:cms
+   ```
+   (run it as a background process; poll the log for "Strapi started successfully").
+
+3. **First-run Strapi content** (manual — browser). Tell the user to:
+   - create the admin user at `http://localhost:1337/admin`;
+   - create a **Landing Page** with **`domain` = `localhost`**, add a **Hero** + **CTA Form**
+     block, **Save → Publish**;
+   - **Settings → API Tokens → Create** a **Read-only** token, and paste it into
+     `apps/web/.env` as `STRAPI_API_TOKEN`.
+   If `STRAPI_API_TOKEN` is still blank in `apps/web/.env`, pause here and ask the user to
+   complete this, since block rendering needs it.
+
+4. **Start the web app** in the background (restart it if it was already running, so it picks
+   up a newly added `STRAPI_API_TOKEN`):
+   ```bash
+   mise run dev:web
+   ```
+
+5. **(Optional) Storybook**:
+   ```bash
+   mise run storybook
+   ```
+
+6. **Verify** and report the result:
+   ```bash
+   curl -s localhost:3000/api/health          # {"ok":true,...}  (may be :3001 if 3000 was taken)
+   curl -s localhost:3000/                      # should contain the tenant's SEO title + block markup
+   ```
+   Report the live URLs (admin :1337, web :3000/3001, Storybook :6006) and flag anything the
+   user still needs to do (e.g. Strapi token, or that the DB was already initialized).
+
+## Notes
+- Ports: Supabase API 54321 / DB 54322 / Studio 54323 / Mailpit 54324; Strapi 1337;
+  Nuxt 3000 (→3001 if busy); Storybook 6006.
+- Integrations are optional locally — empty keys mean skipped/no-op (Turnstile off, Upstash
+  skipped, Flipt fails open, PostHog/Sentry off). See `docs/LOCAL_DEVELOPMENT.md` §9.
+- To wipe and reseed the DB deliberately: `pnpm exec supabase db reset --workdir infra`
+  (destroys local leads + Strapi content).
+- Never commit `.env` files — they are gitignored.
