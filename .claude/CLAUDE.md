@@ -24,12 +24,13 @@
 | Styling                | Tailwind CSS v4                            | CSS-native, no config file         |
 | CMS                    | Strapi 5                                   | Dynamic Zone for blocks            |
 | Database               | Supabase (PostgreSQL)                      | + Storage + Edge Functions + Auth  |
-| Hosting                | Koyeb                                      | Free tier, Node.js persistent      |
-| Custom domains / SSL   | Domainee                                   | SSL per client domain              |
+| Hosting (web)          | Cloudflare Workers/Pages                   | Free, commercial-OK, Nitro `cloudflare` preset (see ADR 0001) |
+| Custom domains / SSL   | Cloudflare (for SaaS)                      | Free per-domain SSL; replaces Domainee |
+| Hosting (Strapi/Flipt/NocoDB) | Deferred                            | Always-on services — no good free tier; run local until paid |
 | Lead management        | NocoDB                                     | Pointed at Supabase Postgres       |
 | Analytics              | PostHog                                    | Cloud free tier                    |
 | Error tracking         | Sentry                                     | Free tier, 5k errors/month         |
-| Feature flags          | Flipt                                      | Self-hosted on Koyeb               |
+| Feature flags          | Flipt                                      | Self-hosted (deploy deferred)      |
 | Rate limiting          | Upstash Redis                              | Shared instance, free tier         |
 | Bot protection         | Cloudflare Turnstile                       | Invisible CAPTCHA, free            |
 | Email notifications    | Resend                                     | 3k emails/month free               |
@@ -52,6 +53,7 @@
 - Directus / Nuxt Content (decided: Strapi 5)
 - ESLint / Prettier (decided: Biome)
 - Yarn / npm (decided: pnpm)
+- Koyeb / Domainee (decided 2026-07-09: Cloudflare Workers/Pages for web + Cloudflare-for-SaaS SSL — Koyeb dropped its free tier; see ADR 0001. Strapi/Flipt/NocoDB hosting deferred.)
 
 ---
 
@@ -334,9 +336,9 @@ Apply to every new endpoint, form, or database operation:
 - [x] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone) — completed 2026-07-08, Strapi 5.50.0 booting locally against local Supabase Postgres, all 10 blocks + 9 shared components live, API route registered
 - [x] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook) — completed 2026-07-09, multi-tenant page rendering blocks with per-tenant theming, lead capture E2E-verified against local Strapi + Supabase, Storybook builds all 10 blocks
 - [x] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Flipt) — completed 2026-07-09, PostHog funnel + Sentry (@sentry/nuxt) + Flipt fail-open + Turnstile widget wired; Upstash/Resend/WhatsApp already done in Phases 2/4. UptimeRobot + NocoDB remain manual dashboard setup.
-- [ ] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot)
+- [x] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot) — completed 2026-07-09, all `.github/` workflows created inactive (`workflow_dispatch`); hosting pivoted to Cloudflare (ADR 0001), Domainee removed.
 
-**Phases 1–5 complete. Next: Phase 6 — CI/CD (`.claude/docs/prompts/PHASE_6_CICD.md`).**
+**All 6 phases complete.** Deployment (Cloudflare for web; Strapi/Flipt/NocoDB deferred) and the manual dashboard setup (UptimeRobot, NocoDB, branch protection, GitHub secrets) remain before first client onboarding — see `.github/SETUP.md` and ADR 0001.
 
 ---
 
@@ -400,6 +402,6 @@ Apply to every new endpoint, form, or database operation:
 - **Sentry**: use **`@sentry/nuxt`** (`@sentry/nuxt/module` + `sentry.client.config.ts`/`sentry.server.config.ts`), NOT the prompt's deprecated `@nuxtjs/sentry` (no Nuxt 4 support). `Sentry.init` with `dsn: undefined` is a safe no-op. `@sentry/cli` + `core-js` need `allowBuilds` entries.
 - **Turnstile widget** wired **vanilla** (load `challenges.cloudflare.com/turnstile/v0/api.js`, `window.turnstile.render`) inside `CtaFormBlock` gated on an optional `turnstileSiteKey` prop passed from `index.vue` — the `@nuxtjs/turnstile` `<NuxtTurnstile>` component can't live in the framework-agnostic UI package. Server verify (Phase 4) unchanged. Verified with Cloudflare **test keys** (`1x…AA` site / `1x0…AA` secret always pass): submit → 200; real secret without a token → 400. Real keys kept commented in `apps/web/.env` until activated.
 - **Flipt**: `@flipt-io/flipt@1.5` API is `new FliptClient({ url, authenticationStrategy: new ClientTokenAuthentication(token) })` + `client.evaluation.boolean({ namespaceKey:'default', flagKey, entityId, context })` → `{ enabled }` (NOT the prompt's `authentication:{clientToken}`). `server/utils/flipt.ts` **fails open** (returns true on error); `infra/flipt/feature-flags.yaml` committed; `/api/flags` is the real consumer (gates PostHog). Live eval needs a running Flipt server (Koyeb/Docker) — deferred.
-- **Domainee** implemented as specced (`server/utils/domainee.ts` + token-guarded `server/api/admin/domains.post.ts`) but **untested — `api.domainee.io` contract is assumed**; needs a real account.
+- **Domainee** was implemented in Phase 5 then **removed in Phase 6** — hosting pivoted to Cloudflare (ADR 0001), whose for-SaaS custom-hostname API provisions SSL for free, so Domainee (paid, unverified `api.domainee.io`) is no longer needed. The `adminApiToken`/admin-domains endpoint went with it.
 - **Biome ignores extended**: `!**/.strapi-updater.json` + `!.claude` (Strapi update cache + Claude settings are generated/tooling, not source).
 - **Manual, not in repo**: UptimeRobot monitors + NocoDB partner workspace (dashboard setup per the phase prompt).
