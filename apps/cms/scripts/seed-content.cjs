@@ -16,8 +16,7 @@ const { compileStrapi, createStrapi } = require('@strapi/strapi')
 
 const UID = 'api::landing-page.landing-page'
 
-const wa = (number, message) =>
-  `https://wa.me/${number}?text=${encodeURIComponent(message)}`
+const wa = (number, message) => `https://wa.me/${number}?text=${encodeURIComponent(message)}`
 
 /** A complete basic landing-page layout composed from the shared block library. */
 function buildBlocks(c) {
@@ -54,7 +53,11 @@ function buildBlocks(c) {
       text: c.differentials.text,
       items: c.differentials.items,
     },
-    { __component: 'blocks.testimonials', headline: c.testimonials.headline, items: c.testimonials.items },
+    {
+      __component: 'blocks.testimonials',
+      headline: c.testimonials.headline,
+      items: c.testimonials.items,
+    },
     {
       __component: 'blocks.cta-form',
       headline: c.form.headline,
@@ -94,11 +97,15 @@ const clients = [
       { label: 'Depoimentos', url: '#depoimentos' },
       { label: 'Contato', url: '#contato' },
     ],
-    header: { ctaLabel: 'Fale conosco', ctaMessage: 'Olá! Quero saber sobre as motos disponíveis.' },
+    header: {
+      ctaLabel: 'Fale conosco',
+      ctaMessage: 'Olá! Quero saber sobre as motos disponíveis.',
+    },
     hero: {
       badge: 'Linha 2026 disponível',
       headline: 'Sua próxima moto está na Forge Motos',
-      subheadline: 'Modelos 0km com condições exclusivas, financiamento em minutos e entrega imediata.',
+      subheadline:
+        'Modelos 0km com condições exclusivas, financiamento em minutos e entrega imediata.',
       ctaPrimaryLabel: 'Ver ofertas',
       waMessage: 'Olá! Quero saber sobre as motos disponíveis.',
       imageAlt: 'Moto esportiva vermelha em destaque',
@@ -119,9 +126,21 @@ const clients = [
       headline: 'Por que comprar na Forge Motos',
       text: 'Da escolha à entrega, cuidamos de cada detalhe para você sair pilotando.',
       cards: [
-        { icon: '💰', title: 'Melhor preço', description: 'Condições exclusivas e parcelamento que cabe no seu bolso.' },
-        { icon: '📄', title: 'Sem burocracia', description: 'Documentação e financiamento resolvidos no mesmo dia.' },
-        { icon: '🔧', title: 'Revisão inclusa', description: 'Primeira revisão gratuita e assistência dedicada.' },
+        {
+          icon: '💰',
+          title: 'Melhor preço',
+          description: 'Condições exclusivas e parcelamento que cabe no seu bolso.',
+        },
+        {
+          icon: '📄',
+          title: 'Sem burocracia',
+          description: 'Documentação e financiamento resolvidos no mesmo dia.',
+        },
+        {
+          icon: '🔧',
+          title: 'Revisão inclusa',
+          description: 'Primeira revisão gratuita e assistência dedicada.',
+        },
       ],
     },
     differentials: {
@@ -137,8 +156,18 @@ const clients = [
     testimonials: {
       headline: 'O que dizem nossos clientes',
       items: [
-        { name: 'Carlos Mendes', role: 'Cliente desde 2022', text: 'Comprei minha moto em um dia. Atendimento impecável!', rating: 5 },
-        { name: 'Fernanda Lima', role: 'Motociclista', text: 'Melhor condição de financiamento que encontrei. Recomendo.', rating: 5 },
+        {
+          name: 'Carlos Mendes',
+          role: 'Cliente desde 2022',
+          text: 'Comprei minha moto em um dia. Atendimento impecável!',
+          rating: 5,
+        },
+        {
+          name: 'Fernanda Lima',
+          role: 'Motociclista',
+          text: 'Melhor condição de financiamento que encontrei. Recomendo.',
+          rating: 5,
+        },
       ],
     },
     form: {
@@ -181,7 +210,8 @@ const clients = [
     hero: {
       badge: 'Agendamento online',
       headline: 'Cuidado que você merece',
-      subheadline: 'Especialistas em diversas áreas, exames no local e atendimento humanizado para toda a família.',
+      subheadline:
+        'Especialistas em diversas áreas, exames no local e atendimento humanizado para toda a família.',
       ctaPrimaryLabel: 'Agendar consulta',
       waMessage: 'Olá! Gostaria de agendar uma consulta na Clínica Exemplo.',
       imageAlt: 'Equipe médica sorrindo em consultório',
@@ -202,9 +232,21 @@ const clients = [
       headline: 'Por que escolher a Clínica Exemplo',
       text: 'Saúde de qualidade, perto de você e no seu tempo.',
       cards: [
-        { icon: '👩‍⚕️', title: 'Time especializado', description: 'Profissionais experientes em cada área da medicina.' },
-        { icon: '🔬', title: 'Exames no local', description: 'Diagnóstico rápido sem precisar se deslocar.' },
-        { icon: '📱', title: 'Tudo online', description: 'Agende, remarque e receba resultados pelo celular.' },
+        {
+          icon: '🩺',
+          title: 'Time especializado',
+          description: 'Profissionais experientes em cada área da medicina.',
+        },
+        {
+          icon: '🔬',
+          title: 'Exames no local',
+          description: 'Diagnóstico rápido sem precisar se deslocar.',
+        },
+        {
+          icon: '📱',
+          title: 'Tudo online',
+          description: 'Agende, remarque e receba resultados pelo celular.',
+        },
       ],
     },
     differentials: {
@@ -220,8 +262,18 @@ const clients = [
     testimonials: {
       headline: 'Histórias de quem confia na gente',
       items: [
-        { name: 'Ana Souza', role: 'Paciente', text: 'Atendimento atencioso e sem filas. Me senti muito bem cuidada.', rating: 5 },
-        { name: 'Roberto Dias', role: 'Paciente', text: 'Consegui consulta e exame no mesmo dia. Excelente!', rating: 5 },
+        {
+          name: 'Ana Souza',
+          role: 'Paciente',
+          text: 'Atendimento atencioso e sem filas. Me senti muito bem cuidada.',
+          rating: 5,
+        },
+        {
+          name: 'Roberto Dias',
+          role: 'Paciente',
+          text: 'Consegui consulta e exame no mesmo dia. Excelente!',
+          rating: 5,
+        },
       ],
     },
     form: {
@@ -260,11 +312,15 @@ const clients = [
       { label: 'Depoimentos', url: '#depoimentos' },
       { label: 'Contato', url: '#contato' },
     ],
-    header: { ctaLabel: 'Solicitar consultoria', ctaMessage: 'Olá! Gostaria de uma consultoria jurídica.' },
+    header: {
+      ctaLabel: 'Solicitar consultoria',
+      ctaMessage: 'Olá! Gostaria de uma consultoria jurídica.',
+    },
     hero: {
       badge: 'Atendimento personalizado',
       headline: 'Defesa jurídica de excelência',
-      subheadline: 'Atuação estratégica em direito civil, trabalhista e empresarial, com foco em resultados.',
+      subheadline:
+        'Atuação estratégica em direito civil, trabalhista e empresarial, com foco em resultados.',
       ctaPrimaryLabel: 'Solicitar consultoria',
       waMessage: 'Olá! Gostaria de uma consultoria com a Advocacia Prime.',
       imageAlt: 'Advogado em reunião com cliente',
@@ -285,9 +341,21 @@ const clients = [
       headline: 'Por que a Advocacia Prime',
       text: 'Compromisso, técnica e proximidade em cada caso.',
       cards: [
-        { icon: '🎯', title: 'Estratégia sob medida', description: 'Cada caso recebe um plano jurídico personalizado.' },
-        { icon: '💬', title: 'Comunicação clara', description: 'Você acompanha cada etapa do seu processo.' },
-        { icon: '🏆', title: 'Resultados comprovados', description: 'Histórico sólido de decisões favoráveis.' },
+        {
+          icon: '🎯',
+          title: 'Estratégia sob medida',
+          description: 'Cada caso recebe um plano jurídico personalizado.',
+        },
+        {
+          icon: '💬',
+          title: 'Comunicação clara',
+          description: 'Você acompanha cada etapa do seu processo.',
+        },
+        {
+          icon: '🏆',
+          title: 'Resultados comprovados',
+          description: 'Histórico sólido de decisões favoráveis.',
+        },
       ],
     },
     differentials: {
@@ -303,8 +371,18 @@ const clients = [
     testimonials: {
       headline: 'Clientes que confiaram em nós',
       items: [
-        { name: 'Marina Costa', role: 'Empresária', text: 'Resolveram uma questão trabalhista complexa com maestria.', rating: 5 },
-        { name: 'João Pereira', role: 'Cliente', text: 'Transparência do início ao fim. Recomendo de olhos fechados.', rating: 5 },
+        {
+          name: 'Marina Costa',
+          role: 'Empresária',
+          text: 'Resolveram uma questão trabalhista complexa com maestria.',
+          rating: 5,
+        },
+        {
+          name: 'João Pereira',
+          role: 'Cliente',
+          text: 'Transparência do início ao fim. Recomendo de olhos fechados.',
+          rating: 5,
+        },
       ],
     },
     form: {
