@@ -22,44 +22,61 @@ const deniedExecutableTypes = [
   'application/x-mach-binary',
 ]
 
-const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => ({
-  'users-permissions': {
-    config: {
-      jwtManagement: 'refresh',
-      sessions: {
-        httpOnly: true,
-      },
-    },
-  },
-  upload: {
-    config: {
-      provider: 'aws-s3',
-      providerOptions: {
-        baseUrl: env('SUPABASE_S3_BASE_URL'),
-        s3Options: {
-          endpoint: env('SUPABASE_S3_ENDPOINT'),
-          region: env('SUPABASE_S3_REGION', 'sa-east-1'),
-          forcePathStyle: true,
-          credentials: {
-            accessKeyId: env('SUPABASE_S3_ACCESS_KEY_ID'),
-            secretAccessKey: env('SUPABASE_S3_SECRET_ACCESS_KEY'),
-          },
-          params: {
-            Bucket: env('SUPABASE_S3_BUCKET', 'landing-page-assets'),
-          },
+const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
+  // Falls back to Strapi's local disk provider until Supabase Storage S3
+  // credentials are configured (see apps/cms/.env.example) — otherwise every
+  // upload hits the S3 client with empty credentials and fails.
+  const hasSupabaseS3Credentials = Boolean(env('SUPABASE_S3_ACCESS_KEY_ID'))
+
+  return {
+    'users-permissions': {
+      config: {
+        jwtManagement: 'refresh',
+        sessions: {
+          httpOnly: true,
         },
       },
-      actionOptions: {
-        upload: {},
-        uploadStream: {},
-        delete: {},
-      },
-      security: {
-        allowedTypes: allowedMediaTypes,
-        deniedTypes: deniedExecutableTypes,
-      },
     },
-  },
-})
+    upload: {
+      config: hasSupabaseS3Credentials
+        ? {
+            provider: 'aws-s3',
+            providerOptions: {
+              // Supabase's public object URL is /object/public/<bucket>/<key> —
+              // the provider only appends the file key to baseUrl, so the
+              // bucket must be folded in here rather than left to SUPABASE_S3_BASE_URL.
+              baseUrl: `${env('SUPABASE_S3_BASE_URL')}/${env('SUPABASE_S3_BUCKET', 'landing-page-assets')}`,
+              s3Options: {
+                endpoint: env('SUPABASE_S3_ENDPOINT'),
+                region: env('SUPABASE_S3_REGION', 'sa-east-1'),
+                forcePathStyle: true,
+                credentials: {
+                  accessKeyId: env('SUPABASE_S3_ACCESS_KEY_ID'),
+                  secretAccessKey: env('SUPABASE_S3_SECRET_ACCESS_KEY'),
+                },
+                params: {
+                  Bucket: env('SUPABASE_S3_BUCKET', 'landing-page-assets'),
+                },
+              },
+            },
+            actionOptions: {
+              upload: {},
+              uploadStream: {},
+              delete: {},
+            },
+            security: {
+              allowedTypes: allowedMediaTypes,
+              deniedTypes: deniedExecutableTypes,
+            },
+          }
+        : {
+            security: {
+              allowedTypes: allowedMediaTypes,
+              deniedTypes: deniedExecutableTypes,
+            },
+          },
+    },
+  }
+}
 
 export default config

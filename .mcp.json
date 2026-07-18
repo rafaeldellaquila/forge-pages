@@ -2,14 +2,11 @@
   "mcpServers": {
     "supabase": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=${env:SUPABASE_PROJECT_REF}"
+      "url": "https://mcp.supabase.com/mcp"
     },
     "github": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
+      "args": ["-y", "@modelcontextprotocol/server-github"]
     },
     "context7": {
       "command": "npx",
@@ -19,7 +16,6 @@
       "command": "npx",
       "args": ["-y", "@sentry/mcp-server"],
       "env": {
-        "SENTRY_AUTH_TOKEN": "${env:SENTRY_AUTH_TOKEN}",
         "SENTRY_ORG": "forge-co",
         "SENTRY_PROJECT": "forge-pages"
       }

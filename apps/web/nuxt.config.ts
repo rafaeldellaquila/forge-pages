@@ -55,7 +55,7 @@ export default defineNuxtConfig({
         'default-src': ["'self'"],
         'script-src': ["'self'", "'unsafe-inline'", 'https://challenges.cloudflare.com'],
         'frame-src': ["'self'", 'https://challenges.cloudflare.com'],
-        'img-src': ["'self'", 'data:', '*.supabase.co'],
+        'img-src': ["'self'", 'data:', '*.supabase.co', '*.storage.supabase.co'],
         'connect-src': [
           "'self'",
           process.env.SUPABASE_URL ?? '',
