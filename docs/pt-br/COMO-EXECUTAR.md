@@ -28,7 +28,10 @@ bash .claude/skills/onboard-local/setup.sh
 ```
 
 Ele instala dependências, sobe o Supabase local, aplica migrações + dados de exemplo
-(só na primeira vez) e cria `apps/cms/.env` + `apps/web/.env` se não existirem.
+(só na primeira vez), preenche o `.env` da **raiz** (fonte única de verdade — valores já
+existentes nunca são sobrescritos) e gera `apps/cms/.env` + `apps/web/.env` a partir dele
+(`mise run env:sync`). Nunca edite os `.env` dos apps na mão — edite o da raiz e rode o
+sync. Referência completa: `docs/SECRETS.md`.
 
 Depois, suba os serviços:
 
@@ -44,8 +47,8 @@ mise run dev:web    # Site    → http://localhost:3000 (ou 3001 se a 3000 estiv
 Na primeira vez, abra `http://localhost:1337/admin`:
 
 1. Crie o usuário administrador.
-2. **Settings → API Tokens → Create** um token do tipo **Read-only** e cole em
-   `apps/web/.env` na variável `STRAPI_API_TOKEN`.
+2. **Settings → API Tokens → Create** um token do tipo **Read-only**, cole no `.env` da
+   **raiz** na variável `STRAPI_API_TOKEN` e rode `mise run env:sync`.
 3. Reinicie o `dev:web` para ele ler o token.
 
 Para carregar as 3 landing pages de exemplo (já publicadas):
@@ -98,12 +101,14 @@ mise run storybook    # catálogo de componentes
 ## 7. Problemas comuns
 
 - **Erro `supabaseUrl is required`** → o servidor do site subiu antes das variáveis.
-  **Reinicie o `dev:web`** sempre que editar `apps/web/.env` (ele lê as variáveis só ao iniciar).
+  **Reinicie o `dev:web`** sempre que mudar variáveis (`.env` da raiz + `mise run env:sync`)
+  — ele lê as variáveis só ao iniciar.
 - **Página dá 404** → não existe cliente para aquele domínio no Supabase, ou não está
   publicado. Rode `pnpm exec supabase db reset --workdir infra`.
 - **Página abre mas sem blocos** → o registro no Strapi não tem o mesmo `domain` ou não
   está publicado.
-- **Strapi não sobe** → confira `apps/cms/.env` e se o Supabase está rodando
+- **Strapi não sobe** → confira as variáveis `DATABASE_*` no `.env` da raiz (e rode
+  `mise run env:sync`) e se o Supabase está rodando
   (`pnpm exec supabase status --workdir infra`).
 
 > Detalhes técnicos completos (em inglês): `docs/LOCAL_DEVELOPMENT.md`.

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # forge-pages local bootstrap — idempotent and non-destructive.
 # Installs deps, boots local Supabase (migrations + seed on first run only),
-# and generates apps/cms/.env + apps/web/.env if missing. Does NOT start dev
-# servers (the skill does that) and never overwrites existing .env files or
+# fills the root .env (single source of truth — see docs/SECRETS.md) and syncs
+# apps/cms/.env + apps/web/.env from it. Does NOT start dev servers (the skill
+# does that), never overwrites values already set in the root .env, and never
 # wipes an already-initialized database.
 set -euo pipefail
 
@@ -15,7 +16,8 @@ say() { printf '\n\033[1;36m▶ %s\033[0m\n' "$1"; }
 say "Checking prerequisites"
 command -v docker >/dev/null || { echo "✗ Docker is required"; exit 1; }
 docker info >/dev/null 2>&1 || { echo "✗ Docker is not running — start it first"; exit 1; }
-command -v mise >/dev/null && mise install || echo "  (mise not found — assuming Node 24 + pnpm are on PATH)"
+command -v mise >/dev/null || { echo "✗ mise is required (env loading + env:sync) — https://mise.jdx.dev"; exit 1; }
+mise install
 command -v openssl >/dev/null || { echo "✗ openssl is required to generate Strapi secrets"; exit 1; }
 echo "✓ prerequisites OK"
 
@@ -39,72 +41,52 @@ else
   pnpm exec supabase db reset --workdir infra
 fi
 
-# ── 4. Read local keys from supabase status ──────────────────────────────────
+# ── 4. Root .env (single source of truth) ────────────────────────────────────
+say "Root .env"
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "  created from .env.example"
+else
+  echo "  exists — filling only empty values"
+fi
+
+# set_if_empty VAR VALUE — fills VAR in the root .env only when currently empty
+set_if_empty() {
+  local var="$1" val="$2" current
+  current="$(grep -m1 "^${var}=" .env | cut -d= -f2- || true)"
+  if grep -q "^${var}=" .env; then
+    [ -z "$current" ] && sed -i "s|^${var}=.*|${var}=${val}|" .env
+  else
+    echo "${var}=${val}" >> .env
+  fi
+}
+
 STATUS="$(pnpm exec supabase status --workdir infra 2>/dev/null)"
-PUBLISHABLE_KEY="$(echo "$STATUS" | grep -oE 'sb_publishable_[A-Za-z0-9_-]+' | head -1)"
-SECRET_KEY="$(echo "$STATUS" | grep -oE 'sb_secret_[A-Za-z0-9_-]+' | head -1)"
+set_if_empty SUPABASE_URL "http://127.0.0.1:54321"
+set_if_empty SUPABASE_PUBLISHABLE_KEY "$(echo "$STATUS" | grep -oE 'sb_publishable_[A-Za-z0-9_-]+' | head -1)"
+set_if_empty SUPABASE_SECRET_KEY "$(echo "$STATUS" | grep -oE 'sb_secret_[A-Za-z0-9_-]+' | head -1)"
+set_if_empty STRAPI_URL "http://localhost:1337"
 
-# ── 5. apps/cms/.env (generate if missing) ───────────────────────────────────
-say "apps/cms/.env"
-if [ -f apps/cms/.env ]; then
-  echo "  exists — leaving as-is"
-else
-  rand() { openssl rand -base64 16; }
-  cat > apps/cms/.env <<EOF
-HOST=0.0.0.0
-PORT=1337
-APP_KEYS=$(rand),$(rand)
-API_TOKEN_SALT=$(rand)
-ADMIN_JWT_SECRET=$(rand)
-TRANSFER_TOKEN_SALT=$(rand)
-JWT_SECRET=$(rand)
-ENCRYPTION_KEY=$(rand)
+rand() { openssl rand -base64 16; }
+set_if_empty APP_KEYS "$(rand),$(rand)"
+set_if_empty API_TOKEN_SALT "$(rand)"
+set_if_empty ADMIN_JWT_SECRET "$(rand)"
+set_if_empty TRANSFER_TOKEN_SALT "$(rand)"
+set_if_empty JWT_SECRET "$(rand)"
+set_if_empty ENCRYPTION_KEY "$(rand)"
+echo "  Supabase keys + Strapi secrets ensured (STRAPI_API_TOKEN stays manual)"
 
-DATABASE_CLIENT=postgres
-DATABASE_HOST=127.0.0.1
-DATABASE_PORT=54322
-DATABASE_NAME=postgres
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_SSL=false
-EOF
-  echo "  created with generated secrets + local DB"
-fi
-
-# ── 6. apps/web/.env (generate if missing) ───────────────────────────────────
-say "apps/web/.env"
-if [ -f apps/web/.env ]; then
-  echo "  exists — leaving as-is"
-else
-  cat > apps/web/.env <<EOF
-STRAPI_URL=http://localhost:1337
-STRAPI_API_TOKEN=
-
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_PUBLISHABLE_KEY=${PUBLISHABLE_KEY}
-SUPABASE_SECRET_KEY=${SECRET_KEY}
-
-# Optional integrations — empty = skipped/no-op locally
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-TURNSTILE_SECRET_KEY=
-NUXT_PUBLIC_TURNSTILE_SITE_KEY=
-NUXT_PUBLIC_POSTHOG_KEY=
-NUXT_PUBLIC_POSTHOG_HOST=
-NUXT_PUBLIC_SENTRY_DSN=
-FLIPT_URL=
-FLIPT_TOKEN=
-EOF
-  echo "  created (Supabase keys filled from 'supabase status'; STRAPI_API_TOKEN left blank)"
-fi
+# ── 5. Sync apps/web/.env + apps/cms/.env from the root .env ─────────────────
+say "Syncing app env files"
+mise run env:sync
 
 say "Bootstrap complete"
 cat <<'EOF'
 Next (the skill continues from here):
   • Strapi  → mise run dev:cms   (http://localhost:1337/admin)
       first run: create admin, create a Landing Page with domain=localhost
-      (Hero + CTA Form), Publish, then create a Read-only API token and put it
-      in apps/web/.env as STRAPI_API_TOKEN.
+      (Hero + CTA Form), Publish, then create a Read-only API token, put it in
+      the ROOT .env as STRAPI_API_TOKEN and run: mise run env:sync
   • Web     → mise run dev:web    (http://localhost:3000)
   • Storybook → mise run storybook (http://localhost:6006)
 EOF
