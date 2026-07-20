@@ -75,7 +75,7 @@ Allows Claude to fetch recent error events, read stack traces, and suggest fixes
       "args": ["-y", "@sentry/mcp-server"],
       "env": {
         "SENTRY_AUTH_TOKEN": "<from Sentry settings>",
-        "SENTRY_ORG": "forge-co-tech",
+        "SENTRY_ORG": "forge-company",
         "SENTRY_PROJECT": "forge-pages"
       }
     }

@@ -56,28 +56,62 @@ environments = **local dev / cloud prod** (no second cloud project); envs = root
 single source + `docs/SECRETS.md` matrix.
 
 - [x] **Fase A — repo**: env reorg (done 2026-07-20, see above).
-- [ ] **Fase B — new accounts + keys** (all registered under `admin@`):
-  - [ ] Supabase: org "Forge Company" → new project (sa-east-1, PG17) → `supabase link`
-        (`--workdir infra`) → `db push` → deploy `handle-lead-webhook`
-        (`verify_jwt = false`) → function secrets (`RESEND_*`, `WHATSAPP_*`) → Vault
-        (`project_url`, `secret_key`) → Database Webhook `on-new-lead` → disable legacy
-        JWT keys. New ref/URL/keys everywhere; then delete the old project
-        (`wsfteewohhchwewwxnpn`, test data only).
-  - [ ] Resend: verify send subdomain `send.forgecompany.example.com` (keeps root-domain
-        SPF/MX with Google Workspace); `RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`,
-        `RESEND_NOTIFICATION_EMAIL=contato@forgecompany.example.com`.
-  - [ ] PostHog: new org + project → new `phc_…` key.
-  - [ ] Sentry: new org + Nuxt project → new DSN + source-map auth token (update
-        `sentry.sourceMapsUploadOptions.org` in `apps/web/nuxt.config.ts`).
-  - [ ] Upstash: new account → new Redis → REST URL/token.
-  - [ ] Anthropic: console under `admin@` → key for `claude-review.yml`.
-  - [ ] Cloudflare (account already `admin@`): prod Turnstile widget for
-        `forgecompany.example.com` + client domains; Pages-scoped deploy token.
-  - [ ] GitHub: confirm org billing email = `admin@`; new fine-grained PAT.
-- [ ] **Fase C — prod wiring**: replace all 15 GitHub secrets + add the missing 5
-      (`ANTHROPIC_API_KEY`, `STRAPI_URL`, `SUPABASE_DB_HOST`, `FLIPT_URL`, `FLIPT_TOKEN`
-      when they exist); Cloudflare Pages deploy; activate workflows; branch protection;
-      UptimeRobot (under `admin@`).
+- [x] **Fase B — new accounts + keys** (all registered under `admin@`) — **complete
+      2026-07-20**; every credential below re-issued and live-verified. Only `WHATSAPP_*`
+      remains empty (Fase E) and the GitHub PAT was deliberately not rotated.
+  - [x] **Supabase — done 2026-07-20.** Org "Forge Company"
+        (`tnacbzhyknaylpljhktv`) → project **`ofpnglnnzpowlzsyfbit`** (`forge-pages`,
+        sa-east-1, PG17). 4 migrations pushed (RLS on all tables), Edge Function
+        `handle-lead-webhook` deployed (`verify_jwt=false`), Vault (`project_url`,
+        `secret_key`), Database Webhook replaced by a SQL trigger `on_new_lead` on
+        `leads` (reads the secret from Vault — no key hardcoded), retry cron active,
+        legacy JWT keys disabled. **E2E verified**: lead insert → trigger → pg_net →
+        function `200 {"ok":true}` → Resend email delivered → no `webhook_retries`.
+        Prod URL/keys stored in the root `.env` `PROD_*` section (→ GitHub secrets in
+        Fase C). **Caveat**: `WHATSAPP_*` not set (channel dormant, Fase E). Old personal
+        project `wsfteewohhchwewwxnpn` still needs deleting (Fase D).
+  - [x] **Resend — done 2026-07-20.** Send subdomain `send.forgecompany.example.com` added
+        in Resend and **verified** (DKIM + MX + SPF, DNS on Cloudflare; keeps root-domain
+        SPF/MX intact for Google Workspace). New sending-only API key
+        (`re_…`, restricted — can send but not list). Three function secrets re-set on
+        `ofpnglnnzpowlzsyfbit`: `RESEND_API_KEY`, `RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`,
+        `RESEND_NOTIFICATION_EMAIL=contato@forgecompany.example.com`. **E2E verified**: lead
+        insert (publishable key) → trigger → function `200 {"ok":true}` → no
+        `webhook_retries`; direct invoke also `200`, real email delivered to `contato@`.
+  - [x] **PostHog — done 2026-07-20.** New project under `admin@`; `phc_…` key +
+        `https://us.i.posthog.com`. Verified: capture endpoint returns `{"status":"Ok"}`.
+  - [x] **Sentry — done 2026-07-20.** New org **`forge-company`** (US region) + project
+        `forge-pages`; `sentry.sourceMapsUploadOptions.org` in `apps/web/nuxt.config.ts`
+        updated from `forge-co-tech`. DSN (new org id, distinct from the old
+        `o4511700188069888`) in `NUXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN`;
+        **Organization Token** (`sntrys_…`, from Settings → Developer Settings →
+        Organization Tokens) in `SENTRY_AUTH_TOKEN`. Verified: test envelope accepted
+        (`200`), and `sentry-cli releases -o forge-company -p forge-pages list` exits 0
+        (exits 1 on a bogus project) — source-map upload will authenticate.
+  - [x] **Upstash — done 2026-07-20.** New account → Redis; REST URL/token verified
+        (`PING` → `PONG`).
+  - [x] **Anthropic — done 2026-07-20.** Key under `admin@` in `ANTHROPIC_API_KEY`
+        (verified against `GET /v1/models`). **Not wired to CI**: `claude-review.yml`
+        keeps its `pull_request` trigger commented (`workflow_dispatch` only) — user
+        decision to avoid per-PR API spend, `/code-review` locally covers it. The secret
+        is therefore optional in Fase C.
+  - [x] **Cloudflare — done 2026-07-20.** Account already `admin@`. Prod Turnstile
+        widget live (real site/secret keys replaced the `1x…` test pair; siteverify with
+        a dummy token returns `invalid-input-response`, i.e. the secret resolves).
+        Pages-scoped API token verified against
+        `/accounts/{id}/pages/projects` (`200`, empty — no Pages project until Fase C).
+        Note: an account-scoped token **401s** on `/user/tokens/verify` (that endpoint is
+        user-scoped) — check it against an account endpoint instead.
+  - [x] **GitHub — done 2026-07-20.** Org billing email = `admin@`. **PAT not rotated**
+        (user decision): GitHub has no org-level PAT — every PAT is personal — and no
+        workflow reads one (`GITHUB_TOKEN` is auto-injected and covers checkout/PR
+        comments/releases). The existing personal PAT stays for local automation. Only
+        revisit if a workflow ever needs to trigger another workflow.
+- [ ] **Fase C — prod wiring** *(next)*: replace all 15 GitHub secrets + add the missing
+      4 (`STRAPI_URL`, `SUPABASE_DB_HOST`, `FLIPT_URL`, `FLIPT_TOKEN` when they exist);
+      `ANTHROPIC_API_KEY` is optional while `claude-review.yml` stays manual-only.
+      Cloudflare Pages deploy; activate workflows; branch protection; UptimeRobot
+      (under `admin@`).
 - [ ] **Fase D — revocation**: revoke every personal-account key (the `OLD_*` section in
       the root `.env` lists the pending ones — delete the section when done), delete the
       old Supabase project, close/detach personal accounts.
@@ -86,9 +120,9 @@ single source + `docs/SECRETS.md` matrix.
       then).
 - [x] GitHub org renamed `forge-co-tech` → **`forgecompany-tech`** (2026-07-20); local
       remotes updated. GitHub redirects the old name, but re-check webhooks/integrations
-      that pin the old slug. The Sentry org slug (`forge-co-tech` in
-      `apps/web/nuxt.config.ts` + `.claude/AGENTS.md`) is unrelated — it gets replaced
-      with the new Sentry org in Fase B.
+      that pin the old slug. The Sentry org slug is unrelated and was replaced separately
+      in Fase B (`forge-co-tech` → `forge-company` in `apps/web/nuxt.config.ts`; check
+      `.claude/AGENTS.md` still matches).
 - Open (non-blocking): registro.br ownership CPF → CNPJ.
 
 ---
@@ -133,12 +167,15 @@ single source + `docs/SECRETS.md` matrix.
 - [ ] **NocoDB** — self-host; point at Supabase Postgres for partner lead management.
 
 ### 5. Activate parked integrations (wired, currently no-op)
-- [ ] **Turnstile** — swap the test keys in the root `.env` for real site/secret keys
-  (`mise run env:sync` after; widget is wired → real keys will enforce).
-- [ ] **Sentry** — confirm errors land once DSN is live in prod.
-- [ ] **PostHog** — confirm Live Events after deploy.
-- [ ] **Resend** — verify a real sender domain; update `RESEND_FROM_EMAIL`
-  (currently `noreply@dellaquila.dev`).
+- [x] **Turnstile** — real site/secret keys in the root `.env` (test `1x…` pair gone);
+  secret validated via siteverify. Run `mise run env:sync` after any further edit.
+- [x] **Sentry** — DSN + org token set and validated (org `forge-company`, project
+  `forge-pages`); test envelope accepted. Still to confirm in prod: a real error lands
+  after deploy, and the **server** SDK works on the Workers runtime (see §3).
+- [x] **PostHog** — key validated (capture → `Ok`). Still to confirm: Live Events after
+  deploy.
+- [x] **Resend** — sender domain `send.forgecompany.example.com` verified; function secrets
+  set (`RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`). Live send confirmed.
 - [ ] **WhatsApp** — set `WHATSAPP_*` secrets in Supabase (channel dormant until then).
 
 ### 6. Manual dashboards

@@ -78,6 +78,7 @@ Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
 
 | Variable | Consumer | Dev | Prod |
 |---|---|---|---|
+| `SUPABASE_ACCESS_TOKEN` | ops | personal access token (headless CLI + Management API auth) | — (ops only) |
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | ops, ci (deploy) | ops | GH secret |
 | `ANTHROPIC_API_KEY` | ci (PR review) | — | GH secret |
 | `GITHUB_PERSONAL_ACCESS_TOKEN` | ops | fine-grained PAT | — |
@@ -92,3 +93,6 @@ Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
 - The `OLD_*` section in the root `.env` holds personal-account values pending
   revocation during the Forge Company migration (see `docs/GO_LIVE.md`) — delete the
   section once revoked.
+- The `PROD_*` section in the root `.env` holds the new cloud (prod) Supabase
+  URL/keys, staged for injection as GitHub secrets in migration Fase C. Nothing local
+  reads them (`local = dev`); they are not synced to the app `.env` files.

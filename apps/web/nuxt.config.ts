@@ -9,7 +9,7 @@ export default defineNuxtConfig({
 
   sentry: {
     sourceMapsUploadOptions: {
-      org: 'forge-co-tech',
+      org: 'forge-company',
       project: 'forge-pages',
       authToken: process.env.SENTRY_AUTH_TOKEN,
     },
