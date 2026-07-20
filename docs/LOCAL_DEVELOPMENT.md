@@ -51,49 +51,25 @@ which creates a demo client and a **`landing_pages` row with `domain = 'localhos
 
 ## 3. Environment files
 
-Both apps read `.env` (gitignored). Copy from the checked-in examples and fill in local
-values. **Never commit real values.**
+The **root `.env`** (gitignored) is the single source of truth for local values —
+`apps/web/.env` and `apps/cms/.env` are **generated** from it and must never be edited
+by hand. Full variable → consumer → dev/prod matrix: `docs/SECRETS.md`.
 
-### apps/cms/.env (Strapi → local Postgres)
 ```bash
-cp apps/cms/.env.example apps/cms/.env
-```
-Set:
-```bash
-DATABASE_CLIENT=postgres
-DATABASE_HOST=127.0.0.1
-DATABASE_PORT=54322
-DATABASE_NAME=postgres
-DATABASE_USERNAME=postgres
-DATABASE_PASSWORD=postgres
-DATABASE_SSL=false
-# Generate each secret with:  openssl rand -base64 16
-APP_KEYS=<rand>,<rand>
-API_TOKEN_SALT=<rand>
-ADMIN_JWT_SECRET=<rand>
-TRANSFER_TOKEN_SALT=<rand>
-JWT_SECRET=<rand>
-ENCRYPTION_KEY=<rand>
+cp .env.example .env          # non-secret local defaults are pre-filled
+# fill in: SUPABASE_PUBLISHABLE_KEY / SUPABASE_SECRET_KEY (from `supabase status`)
+#          APP_KEYS + the other Strapi secrets (openssl rand -base64 16)
+#          STRAPI_API_TOKEN (created in Strapi admin, step §4)
+mise run env:sync             # regenerates apps/web/.env + apps/cms/.env
 ```
 
-### apps/web/.env (Nuxt → local Strapi + Supabase)
-```bash
-cp apps/web/.env.example apps/web/.env
-```
-Set (keys from `supabase status`):
-```bash
-STRAPI_URL=http://localhost:1337
-STRAPI_API_TOKEN=            # created in Strapi admin, step §4
-SUPABASE_URL=http://127.0.0.1:54321
-SUPABASE_PUBLISHABLE_KEY=    # "PUBLISHABLE_KEY" from `supabase status`
-SUPABASE_SECRET_KEY=         # "SECRET_KEY" from `supabase status`
-# All of the below are optional locally — leave empty to skip that integration:
-UPSTASH_REDIS_REST_URL=      # empty → rate limiting skipped
-TURNSTILE_SECRET_KEY=        # empty → bot check skipped (form works without a token)
-NUXT_PUBLIC_POSTHOG_KEY=     # phc_… → analytics on; empty → off
-NUXT_PUBLIC_SENTRY_DSN=      # empty → Sentry no-op
-FLIPT_URL=                   # empty → Flipt fails open (all flags enabled)
-```
+The `onboard-local` setup script does the copy + key filling automatically.
+mise auto-loads the root `.env` for every task and the activated shell.
+
+Optional integrations stay empty locally — each degrades gracefully:
+`UPSTASH_REDIS_REST_URL` (rate limiting skipped), `TURNSTILE_SECRET_KEY` (bot check
+skipped), `NUXT_PUBLIC_POSTHOG_KEY` (analytics off), `NUXT_PUBLIC_SENTRY_DSN`
+(Sentry no-op), `FLIPT_URL` (flags fail open).
 
 ---
 
@@ -109,7 +85,7 @@ First run:
    match the Supabase tenant domain), add a **Hero** and **CTA Form** block, then
    **Save → Publish**.
 3. **Settings → API Tokens → Create**: name `nuxt-read-only`, type **Read-only** → copy the
-   token into `apps/web/.env` as `STRAPI_API_TOKEN`.
+   token into the root `.env` as `STRAPI_API_TOKEN`, then run `mise run env:sync`.
 
 > Media uploads use the S3 (Supabase Storage) provider only when `SUPABASE_S3_*` are set;
 > otherwise Strapi falls back to local disk (`apps/cms/public/uploads`).
@@ -122,7 +98,8 @@ First run:
 mise run dev:web          # → http://localhost:3000 (or 3001 if taken)
 ```
 
-Restart the dev server after editing `apps/web/.env` (runtime config is read at startup).
+After changing env vars (root `.env` + `mise run env:sync`), restart the dev server —
+runtime config is read at startup.
 
 ---
 
@@ -206,8 +183,8 @@ mise run dev              # Nuxt + Strapi together
   isn't published.
 - **Upstash `WRONGPASS`** → the REST token doesn't match the URL; copy both from the same
   DB's REST API `.env` tab (`UPSTASH_REDIS_REST_TOKEN`, ~60+ chars).
-- **Strapi won't boot** → check `apps/cms/.env` DB values + that Supabase is running
-  (`supabase status --workdir infra`).
+- **Strapi won't boot** → check the `DATABASE_*` values in the root `.env` (then
+  `mise run env:sync`) + that Supabase is running (`supabase status --workdir infra`).
 
 ---
 

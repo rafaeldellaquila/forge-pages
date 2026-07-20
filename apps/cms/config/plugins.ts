@@ -24,7 +24,7 @@ const deniedExecutableTypes = [
 
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
   // Falls back to Strapi's local disk provider until Supabase Storage S3
-  // credentials are configured (see apps/cms/.env.example) — otherwise every
+  // credentials are configured (see the root .env.example) — otherwise every
   // upload hits the S3 client with empty credentials and fails.
   const hasSupabaseS3Credentials = Boolean(env('SUPABASE_S3_ACCESS_KEY_ID'))
 

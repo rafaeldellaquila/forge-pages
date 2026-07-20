@@ -279,10 +279,15 @@ SDK: `@flipt-io/flipt` (Node.js) used in both Nuxt server routes and Strapi.
 
 ### Environment variables
 
-- `.env.example` contains all keys with empty values and comments
+- Root `.env` (gitignored) is the **single source of truth** for local values; edit it and
+  run `mise run env:sync` to regenerate `apps/web/.env` + `apps/cms/.env` (GENERATED —
+  never edit by hand). mise auto-loads the root `.env` (`[env] _.file`)
+- Root `.env.example` is the only example file (local defaults pre-filled, secrets empty)
 - Real values are **never** in the repo
-- Dev: export from shell or mise env hooks pointing to external source
-- Prod: injected by Koyeb / Supabase dashboards
+- Prod values never live in local files: GitHub Actions secrets, Cloudflare Pages env,
+  Supabase function secrets/Vault, Strapi host dashboard
+- New variable → update root `.env.example`, the `env:sync` allowlist in `.mise.toml`,
+  `docs/SECRETS.md` (matrix), and `.github/SETUP.md` if CI consumes it
 
 ---
 
@@ -339,6 +344,8 @@ Apply to every new endpoint, form, or database operation:
 - [x] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot) — completed 2026-07-09, all `.github/` workflows created inactive (`workflow_dispatch`); hosting pivoted to Cloudflare (ADR 0001), Domainee removed.
 
 **All 6 phases complete.** Deployment (Cloudflare for web; Strapi/Flipt/NocoDB deferred) and the manual dashboard setup (UptimeRobot, NocoDB, branch protection, GitHub secrets) remain before first client onboarding — see `.github/SETUP.md` and ADR 0001.
+
+**Company migration in progress (2026-07-20)**: the company is **Forge Company** — domain `forgecompany.example.com` (registro.br + Cloudflare DNS + Google Workspace); `admin@forgecompany.example.com` = infra/registration email, `contato@forgecompany.example.com` = public contact. All service accounts/keys are being migrated off the personal email — new Supabase project from scratch, every key rotated. Plan + status: `docs/GO_LIVE.md` §"Company account migration". Fase A (env reorg) done.
 
 ---
 
@@ -405,6 +412,12 @@ Apply to every new endpoint, form, or database operation:
 - **Domainee** was implemented in Phase 5 then **removed in Phase 6** — hosting pivoted to Cloudflare (ADR 0001), whose for-SaaS custom-hostname API provisions SSL for free, so Domainee (paid, unverified `api.domainee.io`) is no longer needed. The `adminApiToken`/admin-domains endpoint went with it.
 - **Biome ignores extended**: `!**/.strapi-updater.json` + `!.claude` (Strapi update cache + Claude settings are generated/tooling, not source).
 - **Manual, not in repo**: UptimeRobot monitors + NocoDB partner workspace (dashboard setup per the phase prompt).
+
+### 2026-07-20: Env management reorg (migration Fase A)
+- **Root `.env` = single source of truth**; `mise run env:sync` (task in `.mise.toml`) regenerates `apps/*/.env` from allowlists. `HOST`/`PORT` must NOT be in the root `.env`: mise exports it to every process and Nuxt would bind Strapi's `PORT=1337` (Strapi's own defaults cover them).
+- **mise task scripts are rendered through tera**: bash `${#ARRAY[@]}` breaks parsing (`{#` opens a tera comment). Avoid `${#…}` in `.mise.toml` scripts.
+- **`[env] _.file = ".env"`** silently ignores a missing file — safe on fresh clones.
+- Root `.env` keeps an `OLD_*` section with personal-account cloud values pending revocation (migration Fase D) — nothing consumes `OLD_*` vars; delete the section after revoking.
 
 ### 2026-07-09: Local multi-tenant demo + client onboarding
 - **Testing multiple tenants locally**: use `*.localhost` subdomains (browsers resolve them to loopback, no `/etc/hosts`; the tenant middleware strips the port). Seed one `landing_pages` row + one **published** Strapi entry per domain — both keyed on the identical `domain`. `infra/supabase/seed/` now has 3 demo clients (`forge-motos`/`clinica`/`advocacia`.localhost); bare `localhost` is no longer a tenant.

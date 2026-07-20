@@ -12,6 +12,11 @@
   captura de leads ponta a ponta.
 - 15 segredos (secrets) do GitHub Actions já configurados.
 - Arquivo `.env` da raiz limpo (chaves mortas removidas, nomes corrigidos).
+- **2026-07-20**: `.env` da raiz virou a fonte única de verdade (`mise run env:sync` gera
+  os `.env` dos apps; matriz em `docs/SECRETS.md`). **Migração para a conta da empresa
+  (Forge Company / `admin@forgecompany.example.com`) em andamento** — plano e status em
+  `docs/GO_LIVE.md`, seção "Company account migration". Todas as chaves atuais (conta
+  pessoal) serão trocadas e revogadas.
 
 **Bloqueios reais para ir ao ar:** publicar o site (Cloudflare Pages) e hospedar o Strapi
 para o CMS ficar acessível em produção. O resto é configuração / robustez / operação.
@@ -53,7 +58,8 @@ para o CMS ficar acessível em produção. O resto é configuração / robustez 
 - [ ] **NocoDB** — hospedar; apontar para o Postgres do Supabase (gestão de leads).
 
 ### 5. Ativar integrações já preparadas (ligadas ao setar chaves)
-- [ ] **Turnstile** — trocar as chaves de teste em `apps/web/.env` pelas reais.
+- [ ] **Turnstile** — trocar as chaves de teste no `.env` da raiz pelas reais (widget de
+  produção, conta Cloudflare da empresa) e rodar `mise run env:sync`.
 - [ ] **Sentry** — confirmar erros chegando em produção.
 - [ ] **PostHog** — confirmar eventos ao vivo após deploy.
 - [ ] **Resend** — verificar um domínio remetente real; atualizar `RESEND_FROM_EMAIL`.

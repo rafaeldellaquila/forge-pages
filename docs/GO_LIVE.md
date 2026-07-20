@@ -1,6 +1,6 @@
 # forge-pages — Go-Live / Remaining Work
 
-> Snapshot: **2026-07-10**. Living checklist of what's left before onboarding the first
+> Snapshot: **2026-07-20**. Living checklist of what's left before onboarding the first
 > paying client, plus notes to resume in a fresh session. Update as items are completed.
 
 ---
@@ -35,6 +35,57 @@ so the CMS is reachable in production. Everything else is config / hardening / o
   `UPSTASH_REDIS_REST_TOKEN`, `TURNSTILE_SECRET_KEY`, `NUXT_PUBLIC_TURNSTILE_SITE_KEY`,
   `NUXT_PUBLIC_POSTHOG_KEY`, `NUXT_PUBLIC_POSTHOG_HOST`, `NUXT_PUBLIC_SENTRY_DSN`,
   `SENTRY_AUTH_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`.
+  **All 15 hold personal-account values — every one gets replaced during the company
+  migration (Fase C below).**
+- **2026-07-20 — env management reorganized (migration Fase A)**: root `.env` is the
+  single source of truth, `mise run env:sync` regenerates `apps/*/.env`, matrix in
+  `docs/SECRETS.md`, per-app `.env.example` files removed, root `.env.example` rewritten.
+
+---
+
+## Company account migration (Forge Company)
+
+Context: the company now exists — domain **forgecompany.example.com** (registro.br, DNS on
+Cloudflare, Google Workspace). `admin@forgecompany.example.com` (alias of `contato@`) is the
+registration email for all infra; `contato@` is the public/reply address. Cloudflare and
+GitHub are already registered under `admin@`. **Everything else is on a personal account
+and must be recreated — no key is reused; all current keys get revoked at the end.**
+
+Decisions taken (2026-07-20): Supabase = **new project from scratch** (not a transfer);
+environments = **local dev / cloud prod** (no second cloud project); envs = root `.env`
+single source + `docs/SECRETS.md` matrix.
+
+- [x] **Fase A — repo**: env reorg (done 2026-07-20, see above).
+- [ ] **Fase B — new accounts + keys** (all registered under `admin@`):
+  - [ ] Supabase: org "Forge Company" → new project (sa-east-1, PG17) → `supabase link`
+        (`--workdir infra`) → `db push` → deploy `handle-lead-webhook`
+        (`verify_jwt = false`) → function secrets (`RESEND_*`, `WHATSAPP_*`) → Vault
+        (`project_url`, `secret_key`) → Database Webhook `on-new-lead` → disable legacy
+        JWT keys. New ref/URL/keys everywhere; then delete the old project
+        (`wsfteewohhchwewwxnpn`, test data only).
+  - [ ] Resend: verify send subdomain `send.forgecompany.example.com` (keeps root-domain
+        SPF/MX with Google Workspace); `RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`,
+        `RESEND_NOTIFICATION_EMAIL=contato@forgecompany.example.com`.
+  - [ ] PostHog: new org + project → new `phc_…` key.
+  - [ ] Sentry: new org + Nuxt project → new DSN + source-map auth token (update
+        `sentry.sourceMapsUploadOptions.org` in `apps/web/nuxt.config.ts`).
+  - [ ] Upstash: new account → new Redis → REST URL/token.
+  - [ ] Anthropic: console under `admin@` → key for `claude-review.yml`.
+  - [ ] Cloudflare (account already `admin@`): prod Turnstile widget for
+        `forgecompany.example.com` + client domains; Pages-scoped deploy token.
+  - [ ] GitHub: confirm org billing email = `admin@`; new fine-grained PAT.
+- [ ] **Fase C — prod wiring**: replace all 15 GitHub secrets + add the missing 5
+      (`ANTHROPIC_API_KEY`, `STRAPI_URL`, `SUPABASE_DB_HOST`, `FLIPT_URL`, `FLIPT_TOKEN`
+      when they exist); Cloudflare Pages deploy; activate workflows; branch protection;
+      UptimeRobot (under `admin@`).
+- [ ] **Fase D — revocation**: revoke every personal-account key (the `OLD_*` section in
+      the root `.env` lists the pending ones — delete the section when done), delete the
+      old Supabase project, close/detach personal accounts.
+- [ ] **Fase E (parallel, slow)** — WhatsApp Cloud API under a Forge Company Meta
+      Business Manager (needs CNPJ business verification; channel stays dormant until
+      then).
+- Open (non-blocking): rename GitHub org `forge-co-tech`? (redirects exist but old
+  clones/integrations break — keeping for now); registro.br ownership CPF → CNPJ.
 
 ---
 
@@ -78,8 +129,8 @@ so the CMS is reachable in production. Everything else is config / hardening / o
 - [ ] **NocoDB** — self-host; point at Supabase Postgres for partner lead management.
 
 ### 5. Activate parked integrations (wired, currently no-op)
-- [ ] **Turnstile** — swap the test keys in `apps/web/.env` for real site/secret keys
-  (widget is wired → real keys will enforce).
+- [ ] **Turnstile** — swap the test keys in the root `.env` for real site/secret keys
+  (`mise run env:sync` after; widget is wired → real keys will enforce).
 - [ ] **Sentry** — confirm errors land once DSN is live in prod.
 - [ ] **PostHog** — confirm Live Events after deploy.
 - [ ] **Resend** — verify a real sender domain; update `RESEND_FROM_EMAIL`
@@ -97,8 +148,10 @@ so the CMS is reachable in production. Everything else is config / hardening / o
 
 - **Restart `dev:web` after editing `apps/web/.env`** — Nuxt bakes `runtimeConfig` at
   startup; a stale server throws `supabaseUrl is required`.
-- **Root `.env` is a manual vault**, not auto-loaded by the apps (they use
-  `apps/web/.env` / `apps/cms/.env`). It's gitignored.
+- **Root `.env` is the single source of truth** (gitignored): edit it, then
+  `mise run env:sync` regenerates `apps/web/.env` + `apps/cms/.env` (GENERATED — never
+  edit by hand). mise auto-loads the root `.env` for tasks and the activated shell.
+  Matrix: `docs/SECRETS.md`.
 - **Strapi 5 REST creates drafts only** — seed *published* content via the Document
   Service script (`apps/cms/scripts/seed-content.cjs`), which must be `.cjs`.
 - **Local multi-tenant test:** open `http://forge-motos.localhost:3001`,
