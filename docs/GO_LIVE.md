@@ -84,8 +84,12 @@ single source + `docs/SECRETS.md` matrix.
 - [ ] **Fase E (parallel, slow)** — WhatsApp Cloud API under a Forge Company Meta
       Business Manager (needs CNPJ business verification; channel stays dormant until
       then).
-- Open (non-blocking): rename GitHub org `forge-co-tech`? (redirects exist but old
-  clones/integrations break — keeping for now); registro.br ownership CPF → CNPJ.
+- [x] GitHub org renamed `forge-co-tech` → **`forgecompany-tech`** (2026-07-20); local
+      remotes updated. GitHub redirects the old name, but re-check webhooks/integrations
+      that pin the old slug. The Sentry org slug (`forge-co-tech` in
+      `apps/web/nuxt.config.ts` + `.claude/AGENTS.md`) is unrelated — it gets replaced
+      with the new Sentry org in Fase B.
+- Open (non-blocking): registro.br ownership CPF → CNPJ.
 
 ---
 

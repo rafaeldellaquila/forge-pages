@@ -10,8 +10,8 @@
 
 **forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Nuxt 4 app serves all clients — the tenant is resolved from the `Host` header on every request. Content is managed via Strapi 5 CMS using Dynamic Zone (block-based composition). Leads captured on landing pages are stored in Supabase, notified via Resend (email) and WhatsApp Cloud API, and managed via NocoDB by non-technical partners.
 
-**GitHub org**: `forge-co-tech`
-**Repository**: `forge-co-tech/forge-pages`
+**GitHub org**: `forgecompany-tech` (renamed from `forge-co-tech` 2026-07-20)
+**Repository**: `forgecompany-tech/forge-pages`
 **Language standard**: All code, comments, variables, functions, filenames, database columns, API fields, and git messages in **English**. User-facing content (landing page text) in Portuguese.
 
 ---
