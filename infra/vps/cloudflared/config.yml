@@ -1,0 +1,18 @@
+# Cloudflare Tunnel ingress rules (locally-managed tunnel). Versioned here so the
+# routing is IaC; the credentials JSON it references lives only on the VM (gitignored).
+#
+# Replace <TUNNEL_UUID> with the id printed by `cloudflared tunnel create forge-pages`.
+# Access (Zero Trust) policies gate each hostname separately — see ADR 0003.
+
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/credentials/<TUNNEL_UUID>.json
+
+# First match wins; the final catch-all returns 404 for any unmapped hostname.
+ingress:
+  - hostname: cms.forgecompany.example.com
+    service: http://cms:1337
+  - hostname: db.forgecompany.example.com
+    service: http://nocodb:8080
+  - hostname: flags.forgecompany.example.com
+    service: http://flipt:8080
+  - service: http_status:404

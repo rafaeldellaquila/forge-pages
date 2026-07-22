@@ -1,0 +1,32 @@
+# Cloudflare Tunnel ingress overlay — the production entry point for the always-on
+# services. cloudflared dials OUT to Cloudflare (no inbound ports), and Cloudflare
+# terminates TLS on cms./db./flags.forgecompany.example.com, routing each hostname to a
+# service over the internal compose network (see cloudflared/config.yml).
+#
+# One-time setup on the VM (installs a login cert + creates the named tunnel):
+#   cloudflared tunnel login
+#   cloudflared tunnel create forge-pages          # prints the tunnel UUID + creds JSON
+#   mkdir -p infra/vps/cloudflared/credentials
+#   cp ~/.cloudflared/<UUID>.json infra/vps/cloudflared/credentials/
+#   # put the UUID into cloudflared/config.yml, then for each hostname:
+#   cloudflared tunnel route dns forge-pages cms.forgecompany.example.com
+#   cloudflared tunnel route dns forge-pages db.forgecompany.example.com
+#   cloudflared tunnel route dns forge-pages flags.forgecompany.example.com
+#
+# Real deploy:
+#   docker compose -f infra/vps/docker-compose.yml \
+#                  -f infra/vps/docker-compose.tunnel.yml up -d --build
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --config /etc/cloudflared/config.yml run
+    depends_on:
+      - cms
+      - nocodb
+      - flipt
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      # Directory holding <UUID>.json — gitignored; lives only on the VM.
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro

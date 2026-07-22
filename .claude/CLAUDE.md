@@ -26,11 +26,11 @@
 | Database               | Supabase (PostgreSQL)                      | + Storage + Edge Functions + Auth  |
 | Hosting (web)          | Cloudflare Workers/Pages                   | Free, commercial-OK, Nitro `cloudflare` preset (see ADR 0001) |
 | Custom domains / SSL   | Cloudflare (for SaaS)                      | Free per-domain SSL; replaces Domainee |
-| Hosting (Strapi/Flipt/NocoDB) | Deferred                            | Always-on services — no good free tier; run local until paid |
+| Hosting (Strapi/Flipt/NocoDB) | AWS Lightsail São Paulo (2 GB) + Cloudflare Tunnel + Access | Docker Compose on one VPS (`infra/vps/`), no public ports; see ADR 0003 |
 | Lead management        | NocoDB                                     | Pointed at Supabase Postgres       |
 | Analytics              | PostHog                                    | Cloud free tier                    |
 | Error tracking         | Sentry                                     | Free tier, 5k errors/month         |
-| Feature flags          | Flipt                                      | Self-hosted (deploy deferred)      |
+| Feature flags          | Flipt                                      | Self-hosted on the VPS; declarative flags in `infra/flipt/` |
 | Rate limiting          | Upstash Redis                              | Shared instance, free tier         |
 | Bot protection         | Cloudflare Turnstile                       | Invisible CAPTCHA, free            |
 | Email notifications    | Resend                                     | 3k emails/month free               |
@@ -53,7 +53,8 @@
 - Directus / Nuxt Content (decided: Strapi 5)
 - ESLint / Prettier (decided: Biome)
 - Yarn / npm (decided: pnpm)
-- Koyeb / Domainee (decided 2026-07-09: Cloudflare Workers/Pages for web + Cloudflare-for-SaaS SSL — Koyeb dropped its free tier; see ADR 0001. Strapi/Flipt/NocoDB hosting deferred.)
+- Koyeb / Domainee (decided 2026-07-09: Cloudflare Workers/Pages for web + Cloudflare-for-SaaS SSL — Koyeb dropped its free tier; see ADR 0001.)
+- Always-on services hosting (decided 2026-07-22: AWS Lightsail São Paulo VPS + Cloudflare Tunnel + Access, Docker Compose in `infra/vps/`. Oracle Always Free rejected — halved allocation + `sa-saopaulo-1` capacity roulette; Fly.io/Cloudflare Containers rejected — second edge/compute platform alongside Cloudflare. See ADR 0003.)
 
 ---
 
@@ -449,3 +450,11 @@ Apply to every new endpoint, form, or database operation:
 - **Strapi 5 REST creates drafts only**: there is no publish action on the content API, so an API token can't seed *published* content. The working path is a **Document Service script** run inside the app context — `apps/cms/scripts/seed-content.cjs` (`createStrapi(await compileStrapi()).load()` then `app.documents(uid).create({ data, status: 'published' })`). No token needed; it replaces (delete + recreate) each listed domain so edits always apply.
 - **Must be `.cjs` / `require`**: importing `@strapi/strapi` from a pure-ESM `.mjs` hits `ERR_UNSUPPORTED_DIR_IMPORT` on Strapi's `.mjs` build (`lodash/fp` directory import); the CommonJS build resolves fine. `app.destroy()` throws a benign `aborted` when a dev server shares the DB — wrap in `.catch(() => {})` so the script still exits 0.
 - **Onboarding doc**: `docs/ADD_CLIENT.md` (local fast/CMS paths + prod Cloudflare custom-hostname flow).
+
+### 2026-07-22: Always-on hosting decision (ADR-0003) — VPS + Cloudflare Tunnel
+- **Reframing that drove it**: Strapi/NocoDB/Flipt are internal back-office, decoupled from the visitor hot path (Nuxt ISR on Cloudflare only hits Strapi on publish). So latency/HA barely matter; reliable provisioning + RAM + an auth gate do. That makes a cheap always-on VPS beat a free tier that may fail to provision.
+- **Oracle Always Free rejected**: free A1 **halved to 2 OCPU/12 GB on 2026-06-15** + `sa-saopaulo-1` recurring **"out of host capacity"**. Kept only as a $0 fallback. **Fly.io / Cloudflare Containers rejected**: both cheap + a good fit (services are effectively stateless — uploads→Supabase S3, DB→Supabase, Flipt→repo YAML), but each is a second edge/compute platform next to Cloudflare.
+- **Chosen**: **AWS Lightsail São Paulo, 2 GB** (largest free-trial-eligible bundle — the $24/4 GB tier is NOT trial-eligible). Lightsail's own trial is **90 days**, not 6 months; ~6 months comes from stacking the new AWS Free Tier credits (US$100, up to $200, 6-month window for new accounts) on top. ~R$62/mo after. Add a 1–2 GB swapfile for Strapi spikes.
+- **Cloudflare synergy is the point**: since Cloudflare is already core infra, a VPS pairs with **Cloudflare Tunnel** (cloudflared dials out → no public IP, no inbound ports except SSH, free TLS) + **Cloudflare Access** (free Zero-Trust gate ≤50 users, one Access app per hostname, policy = `@forgecompany.example.com`). Access is the authz boundary; the services aren't internet-reachable at all.
+- **Tunnel is locally-managed**: ingress rules versioned in `infra/vps/cloudflared/config.yml`; the per-tunnel `<UUID>.json` credential lives only on the VM (gitignored `cloudflared/credentials/`). Token-based (dashboard-managed) was the simpler alt, rejected to keep ingress as IaC.
+- **Layout**: `infra/vps/` (renamed from a since-dropped Oracle dir); no Caddy TLS overlay (Cloudflare terminates TLS); compose has `cms` + `nocodb` + `flipt` + a `cloudflared` overlay (`docker-compose.tunnel.yml`); env is `forge-services.env`. **No host ports published** — services talk over the internal compose network; smoke test publishes 1337 on loopback for `ssh -L`. Flipt uses `FLIPT_STORAGE_TYPE=local` reading `infra/flipt/` (declarative v1.1 format already there). NocoDB keeps local metadata + Supabase added as an in-app data source (avoids polluting the app schema). **Nuxt→Strapi server-side calls hit the Access gate — need a Cloudflare Access service token.** Runbook: `infra/vps/README.md`.

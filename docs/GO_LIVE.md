@@ -159,12 +159,20 @@ single source + `docs/SECRETS.md` matrix.
 - [ ] Per-client **custom hostname** + SSL via Cloudflare for SaaS (see ADR 0001 &
   `docs/ADD_CLIENT.md`).
 
-### 4. Always-on services (no free tier — deferred) *(Strapi is a blocker)*
-- [ ] **Strapi** — pick a host; set prod `DATABASE_URL` (currently local Supabase PG);
-  verify S3 upload (Supabase Storage bucket + `SUPABASE_S3_*`). Must be reachable in prod
-  or pages render with theme but no blocks.
-- [ ] **Flipt** — run a server; set `FLIPT_URL`/`FLIPT_TOKEN` (until then: fails open).
-- [ ] **NocoDB** — self-host; point at Supabase Postgres for partner lead management.
+### 4. Always-on services — VPS + Cloudflare Tunnel + Access *(Strapi is a blocker)*
+Host decided (ADR 0003): one **AWS Lightsail São Paulo 2 GB** VPS runs Strapi + NocoDB +
+Flipt via Docker Compose (`infra/vps/`), fronted by Cloudflare Tunnel (no public ports) and
+gated by Cloudflare Access. **Full step-by-step runbook: `infra/vps/README.md`.**
+- [ ] Provision the Lightsail VM (swap + Docker + SSH-only firewall) — README Step 1.
+- [ ] Fill `infra/vps/forge-services.env` on the VM: fresh Strapi secrets, prod
+  `DATABASE_URL` (currently local Supabase PG), `SUPABASE_S3_*`, `NC_AUTH_JWT_SECRET` — Step 3.
+  Strapi must be reachable in prod or pages render with theme but no blocks.
+- [ ] Create the Cloudflare Tunnel + `cms./db./flags.forgecompany.example.com` DNS routes — Step 4.
+- [ ] Add a Cloudflare Access application per hostname (policy: `@forgecompany.example.com`) — Step 5.
+- [ ] Deploy + verify (Step 6–7); set `STRAPI_URL`/`FLIPT_URL` to the tunnel hostnames.
+  Nuxt→Strapi server calls behind Access need an Access **service token** (see README Step 7).
+- Fallback if Lightsail trial/credits run out: Oracle Always Free (if A1 capacity frees up)
+  or Fly.io `gru`/Cloudflare Containers — same compose, both rejected as primary (ADR 0003).
 
 ### 5. Activate parked integrations (wired, currently no-op)
 - [x] **Turnstile** — real site/secret keys in the root `.env` (test `1x…` pair gone);

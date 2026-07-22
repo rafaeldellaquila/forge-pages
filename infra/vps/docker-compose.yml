@@ -1,0 +1,53 @@
+# forge-pages always-on services (Strapi CMS, NocoDB, Flipt) on a São Paulo VPS.
+# NO host ports are published — Cloudflare Tunnel (docker-compose.tunnel.yml) reaches
+# each service over the internal compose network, so nothing is exposed to the internet.
+# Env comes from forge-services.env (gitignored; real values live ONLY on the VM).
+#
+# Build context is the repo root so the multi-stage cms Dockerfile sees the whole
+# pnpm workspace. Real deploy, from the repo root on the VM:
+#   docker compose -f infra/vps/docker-compose.yml \
+#                  -f infra/vps/docker-compose.tunnel.yml up -d --build
+# Smoke test (Strapi only, throwaway Postgres, reachable via `ssh -L 1337`):
+#   docker compose -f infra/vps/docker-compose.yml \
+#                  -f infra/vps/docker-compose.smoke.yml up -d --build cms db
+
+services:
+  cms:
+    build:
+      context: ../..
+      dockerfile: apps/cms/Dockerfile
+    image: forge-pages-cms:latest
+    env_file: ./forge-services.env
+    restart: unless-stopped
+    expose:
+      - "1337"
+    volumes:
+      # Local-disk upload fallback; unused once SUPABASE_S3_* is set (uploads go to Supabase Storage).
+      - cms-uploads:/app/public/uploads
+
+  nocodb:
+    image: nocodb/nocodb:latest
+    env_file: ./forge-services.env
+    restart: unless-stopped
+    expose:
+      - "8080"
+    volumes:
+      # NocoDB app metadata. Lead data itself stays in Supabase (added as a data source in-app).
+      - nocodb-data:/usr/app/data
+
+  flipt:
+    image: flipt/flipt:latest
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      # Declarative/local storage: read flag state from the repo-tracked YAML, read-only.
+      FLIPT_STORAGE_TYPE: local
+      FLIPT_STORAGE_LOCAL_PATH: /etc/flipt
+      FLIPT_META_TELEMETRY_ENABLED: "false"
+    volumes:
+      - ../flipt:/etc/flipt:ro
+
+volumes:
+  cms-uploads:
+  nocodb-data:

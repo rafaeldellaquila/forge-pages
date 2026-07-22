@@ -15,8 +15,8 @@ present but commented out in each file — activate them when ready (see bottom)
 - `SUPABASE_DB_PASSWORD` — Database password
 
 ### Strapi
-- `STRAPI_URL` — Production Strapi URL
-- `STRAPI_API_TOKEN` — Read-only API token
+- `STRAPI_URL` — Production Strapi URL (`https://cms.forgecompany.example.com`, the Cloudflare Tunnel hostname)
+- `STRAPI_API_TOKEN` — Read-only API token (created in the Strapi admin after deploy)
 
 ### Upstash
 - `UPSTASH_REDIS_REST_URL`
@@ -35,7 +35,7 @@ present but commented out in each file — activate them when ready (see bottom)
 - `SENTRY_AUTH_TOKEN` — for source-map uploads (prod only)
 
 ### Flipt
-- `FLIPT_URL`
+- `FLIPT_URL` (`https://flags.forgecompany.example.com`, the Cloudflare Tunnel hostname)
 - `FLIPT_TOKEN`
 
 ### Cloudflare (deployment — when the web app is deployed; see docs/adr/0001-hosting-cloudflare.md)
@@ -46,8 +46,10 @@ present but commented out in each file — activate them when ready (see bottom)
 - `ANTHROPIC_API_KEY`
 
 > Hosting note: the web app targets **Cloudflare Workers/Pages** (Nitro `cloudflare`
-> preset). Koyeb and Domainee are no longer used (ADR 0001). Strapi/Flipt/NocoDB
-> deployment is deferred — no secrets needed for them until a host is chosen.
+> preset). Koyeb and Domainee are no longer used (ADR 0001). Strapi/Flipt/NocoDB run on a
+> **São Paulo VPS behind Cloudflare Tunnel + Access** (ADR 0003) — deployed **manually** on
+> the VM (runbook: `infra/vps/README.md`), not via GitHub Actions, so they need no CI
+> secrets here. The secrets above are what the **web app** consumes to reach them.
 
 ## Workflows
 
