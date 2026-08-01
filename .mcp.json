@@ -16,13 +16,23 @@
       "command": "npx",
       "args": ["-y", "@sentry/mcp-server"],
       "env": {
-        "SENTRY_ORG": "forge-co",
+        "SENTRY_ORG": "forge-company",
         "SENTRY_PROJECT": "forge-pages"
       }
     },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp"]
+    },
+    "strapi-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:1337/mcp",
+        "--header",
+        "Authorization: Bearer ${STRAPI_MCP_ADMIN_TOKEN:-}"
+      ]
     }
   }
 }

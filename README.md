@@ -24,6 +24,7 @@ cp .vscode/mcp.json.example .vscode/mcp.json   # configure MCP tokens
 ### Development
 
 ```bash
+mise run dev      # start all services (Strapi, Nuxt, etc.)
 mise run dev:cms      # start Strapi (port 1337)
 mise run dev:web      # start Nuxt (port 3000)
 ```

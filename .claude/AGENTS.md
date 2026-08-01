@@ -105,6 +105,29 @@ Allows Claude to open a real browser and test form submissions, block rendering,
 
 ---
 
+### Strapi MCP
+Allows Claude to read and manage Strapi content (landing pages, blocks) directly — exposes the Content API surface allowed by the admin token's permissions (read-only or full CRUD/publish). Bridged via `mcp-remote` since Strapi's native MCP endpoint (`config/server.ts` → `mcp.enabled: true`) speaks HTTP, not stdio.
+
+```json
+{
+  "mcpServers": {
+    "strapi-mcp": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote", "http://localhost:1337/mcp",
+        "--header", "Authorization: Bearer ${STRAPI_MCP_ADMIN_TOKEN:-}"
+      ]
+    }
+  }
+}
+```
+
+Token comes from Strapi admin → Settings → Admin tokens (not a Content API token — MCP requires an Admin token). Set `STRAPI_MCP_ADMIN_TOKEN` in the root `.env`; mise loads it into the shell so `${STRAPI_MCP_ADMIN_TOKEN}` expands when Claude Code launches the server.
+
+**Use when**: seeding or editing landing page content, inspecting live block data, without leaving the terminal.
+
+---
+
 ## Claude Code VS Code Setup
 
 Add MCP configs to `.vscode/mcp.json` (gitignored — never commit tokens):
@@ -116,7 +139,8 @@ Add MCP configs to `.vscode/mcp.json` (gitignored — never commit tokens):
     "github": { ... },
     "context7": { ... },
     "sentry": { ... },
-    "playwright": { ... }
+    "playwright": { ... },
+    "strapi-mcp": { ... }
   }
 }
 ```

@@ -82,6 +82,7 @@ Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
 | `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | ops, ci (deploy) | ops | GH secret |
 | `ANTHROPIC_API_KEY` | ci (PR review) | — | GH secret |
 | `GITHUB_PERSONAL_ACCESS_TOKEN` | ops | fine-grained PAT | — |
+| `STRAPI_MCP_ADMIN_TOKEN` | ops | Strapi admin token, empty → strapi-mcp unauthenticated | — (ops only) |
 
 ## Rules
 
