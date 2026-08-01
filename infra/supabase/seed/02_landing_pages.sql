@@ -33,3 +33,19 @@ insert into public.landing_pages
     '#c9a227',
     'Merriweather'
   );
+
+-- Forge Company's own landing page — locally on *.localhost for review before promoting
+-- to the real forgecompany.example.com domain in production.
+insert into public.landing_pages
+  (id, client_id, domain, status, seo_title, primary_color, secondary_color, font_family, secondary_font_family) values
+  (
+    '00000000-0000-0000-0001-000000000004',
+    '00000000-0000-0000-0000-000000000004',
+    'forgecompany.localhost',
+    'published',
+    'Forge Co. — Marketing forjado sob medida',
+    '#FF6A2C',
+    '#FFBA4A',
+    'Montserrat',
+    'JetBrains Mono'
+  );

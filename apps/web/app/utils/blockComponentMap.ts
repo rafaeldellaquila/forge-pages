@@ -4,6 +4,7 @@ import {
   FooterBlock,
   HeaderBlock,
   HeroBlock,
+  PricingBlock,
   ServicesBlock,
   StatsBlock,
   TestimonialsBlock,
@@ -23,4 +24,5 @@ export const blockComponentMap: Record<string, Component> = {
   'blocks.testimonials': TestimonialsBlock,
   'blocks.cta-form': CtaFormBlock,
   'blocks.footer': FooterBlock,
+  'blocks.pricing': PricingBlock,
 }

@@ -6,7 +6,8 @@
   },
   "options": {},
   "attributes": {
-    "icon": { "type": "string", "required": true },
+    "icon": { "type": "string" },
+    "tag": { "type": "string" },
     "text": { "type": "string", "required": true }
   }
 }

@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const { data } = await supabase
     .from('landing_pages')
     .select(
-      'id, clientId:client_id, domain, renderMode:render_mode, status, seoTitle:seo_title, seoDescription:seo_description, seoOgImage:seo_og_image, canonicalUrl:canonical_url, primaryColor:primary_color, secondaryColor:secondary_color, fontFamily:font_family',
+      'id, clientId:client_id, domain, renderMode:render_mode, status, seoTitle:seo_title, seoDescription:seo_description, seoOgImage:seo_og_image, canonicalUrl:canonical_url, primaryColor:primary_color, secondaryColor:secondary_color, fontFamily:font_family, secondaryFontFamily:secondary_font_family',
     )
     .eq('domain', domain)
     .eq('status', 'published')

@@ -18,6 +18,12 @@ const props = defineProps<ValuePropositionBlock>()
           class="p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
         >
           <span
+            v-if="card.stepLabel"
+            class="block mb-3 text-xs font-semibold tracking-widest uppercase text-[var(--tenant-secondary)]"
+          >
+            {{ card.stepLabel }}
+          </span>
+          <span
             class="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--tenant-secondary)] text-white text-xl mb-4"
           >
             {{ card.icon }}

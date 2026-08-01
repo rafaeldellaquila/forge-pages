@@ -24,6 +24,7 @@ export interface LandingPageConfig {
   primaryColor: string | null
   secondaryColor: string | null
   fontFamily: string | null
+  secondaryFontFamily: string | null
 }
 
 // Lead payload (form → DB)

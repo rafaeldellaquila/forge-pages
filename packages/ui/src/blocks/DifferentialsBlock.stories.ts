@@ -37,3 +37,17 @@ export const WithoutText: Story = {
     ],
   },
 }
+
+export const WithTags: Story = {
+  args: {
+    __component: 'blocks.differentials',
+    headline: 'Toda agência promete personalização. Quase nenhuma entrega.',
+    text: 'A maioria dos materiais comerciais sai de um molde pronto — o cliente sente na hora.',
+    items: [
+      { tag: 'SEM', text: 'apresentação genérica de 80 slides que ninguém lê' },
+      { tag: 'SEM', text: 'pacote fechado que ignora o seu momento de negócio' },
+      { tag: 'SEM', text: 'promessa de resultado sem antes olhar seus dados' },
+      { tag: 'COM', text: 'diagnóstico real antes de qualquer plano de ação' },
+    ],
+  },
+}

@@ -10,7 +10,8 @@
     "logo": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
     "menuLinks": { "type": "component", "repeatable": true, "component": "shared.link" },
     "ctaLabel": { "type": "string", "required": true },
-    "ctaWhatsapp": { "type": "string", "required": true },
-    "ctaMessage": { "type": "string" }
+    "ctaWhatsapp": { "type": "string" },
+    "ctaMessage": { "type": "string" },
+    "ctaLink": { "type": "string" }
   }
 }

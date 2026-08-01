@@ -7,6 +7,11 @@
   },
   "options": {},
   "attributes": {
+    "variant": {
+      "type": "enumeration",
+      "enum": ["default", "ember"],
+      "default": "default"
+    },
     "badgeText": { "type": "string" },
     "headline": { "type": "string", "required": true },
     "subheadline": { "type": "text", "required": true },

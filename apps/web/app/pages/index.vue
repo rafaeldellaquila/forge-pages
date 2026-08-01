@@ -33,6 +33,7 @@ useHead({
         --tenant-primary: ${theme.primaryColor ?? '#065a82'};
         --tenant-secondary: ${theme.secondaryColor ?? '#1c7293'};
         --tenant-font: '${theme.fontFamily ?? 'Inter'}';
+        --tenant-font-secondary: '${theme.secondaryFontFamily ?? theme.fontFamily ?? 'Inter'}';
       }`,
     },
   ],

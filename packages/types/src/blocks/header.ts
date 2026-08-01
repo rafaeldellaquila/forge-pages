@@ -3,6 +3,7 @@ export interface HeaderBlock {
   logo?: { url: string; alternativeText?: string }
   menuLinks: { label: string; url: string }[]
   ctaLabel: string
-  ctaWhatsapp: string
+  ctaWhatsapp?: string
   ctaMessage?: string
+  ctaLink?: string
 }

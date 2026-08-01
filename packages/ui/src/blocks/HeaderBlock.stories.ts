@@ -33,3 +33,16 @@ export const NoMenu: Story = {
     ctaWhatsapp: '+55 11 99999-9999',
   },
 }
+
+export const WithCtaLink: Story = {
+  args: {
+    __component: 'blocks.header',
+    menuLinks: [
+      { label: 'Manifesto', url: '#manifesto' },
+      { label: 'Processo', url: '#processo' },
+      { label: 'Pacotes', url: '#pacotes' },
+    ],
+    ctaLabel: 'Forjar proposta',
+    ctaLink: '#contato',
+  },
+}

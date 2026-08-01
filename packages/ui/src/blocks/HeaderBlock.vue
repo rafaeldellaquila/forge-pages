@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HeaderBlock } from '@forge-pages/types'
+import { computed } from 'vue'
 
 const props = defineProps<HeaderBlock>()
 
@@ -8,6 +9,14 @@ const waLink = (phone: string, message?: string): string => {
   const base = `https://wa.me/${digits}`
   return message ? `${base}?text=${encodeURIComponent(message)}` : base
 }
+
+const ctaHref = computed(() =>
+  props.ctaLink
+    ? props.ctaLink
+    : props.ctaWhatsapp
+      ? waLink(props.ctaWhatsapp, props.ctaMessage)
+      : '#',
+)
 </script>
 
 <template>
@@ -25,9 +34,9 @@ const waLink = (phone: string, message?: string): string => {
         </a>
       </nav>
       <a
-        :href="waLink(props.ctaWhatsapp, props.ctaMessage)"
-        target="_blank"
-        rel="noopener"
+        :href="ctaHref"
+        :target="props.ctaLink ? undefined : '_blank'"
+        :rel="props.ctaLink ? undefined : 'noopener'"
         class="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-[var(--tenant-primary)] hover:opacity-90 transition-opacity"
       >
         {{ props.ctaLabel }}

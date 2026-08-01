@@ -405,6 +405,158 @@ const clients = [
       ],
     },
   },
+  {
+    // Forge Company's own landing page — bespoke layout ported from the marketing deck
+    // (forge_company_apresentacao-sem-precos.html), not the generic client template.
+    // `whatsappNumber` is a placeholder pending Fase E — replace before publishing to prod.
+    domain: 'forgecompany.localhost',
+    name: 'Forge Company',
+    seoTitle: 'Forge Co. — Marketing forjado sob medida',
+    seoDescription:
+      'Marketing digital forjado sob medida — estratégia, tráfego pago e criativos para o seu negócio.',
+    primaryColor: '#FF6A2C',
+    secondaryColor: '#FFBA4A',
+    fontFamily: 'Montserrat',
+    blocks: [
+      {
+        __component: 'blocks.header',
+        menuLinks: [
+          { label: 'Manifesto', url: '#manifesto' },
+          { label: 'Processo', url: '#processo' },
+          { label: 'Pacotes', url: '#pacotes' },
+          { label: 'Setores', url: '#setores' },
+        ],
+        ctaLabel: 'Forjar proposta',
+        ctaLink: '#contato',
+      },
+      {
+        __component: 'blocks.hero',
+        variant: 'ember',
+        headline: 'Forge Co. — Marketing forjado sob medida',
+        subheadline:
+          'Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio — sem propostas de prateleira.',
+        ctaPrimaryLabel: 'Ver pacotes',
+        ctaPrimaryLink: '#pacotes',
+        ctaSecondaryLabel: 'Falar com a gente',
+        ctaSecondaryLink: '#contato',
+      },
+      {
+        __component: 'blocks.differentials',
+        headline: 'Toda agência promete personalização. Quase nenhuma entrega.',
+        text: 'A maioria dos materiais comerciais de marketing sai de um molde pronto: mesmos slides, mesmas promessas, mesmo discurso — só troca a logo. Na Forge Company, cada proposta é forjada depois de entendermos suas dores reais: seu histórico de anúncios, seu material atual e o que já foi tentado.',
+        items: [
+          { tag: 'SEM', text: 'apresentação genérica de 80 slides que ninguém lê' },
+          { tag: 'SEM', text: 'pacote fechado que ignora o seu momento de negócio' },
+          { tag: 'SEM', text: 'promessa de resultado sem antes olhar seus dados' },
+          { tag: 'COM', text: 'diagnóstico real antes de qualquer plano de ação' },
+        ],
+      },
+      {
+        __component: 'blocks.value-proposition',
+        headline: 'Do minério à peça pronta',
+        text: 'Um processo com quatro etapas de calor crescente — cada uma existe para que a etapa seguinte funcione de verdade.',
+        cards: [
+          {
+            stepLabel: '01 · Minério',
+            icon: '🔍',
+            title: 'Diagnóstico',
+            description:
+              'Analisamos suas contas de anúncio, materiais digitais e concorrência — inclusive com cliente oculto, quando faz sentido.',
+          },
+          {
+            stepLabel: '02 · Aquecimento',
+            icon: '🧭',
+            title: 'Plano de ação',
+            description:
+              'Transformamos o diagnóstico em um plano de ação claro, com prioridades — nada de recomendação genérica.',
+          },
+          {
+            stepLabel: '03 · Forja',
+            icon: '🛠️',
+            title: 'Execução',
+            description:
+              'Estratégia, tráfego pago e criativos entram em campo, construídos para as dores específicas identificadas.',
+          },
+          {
+            stepLabel: '04 · Têmpera',
+            icon: '📈',
+            title: 'Otimização',
+            description:
+              'Acompanhamento contínuo, ajustando o que precisa antes que vire problema — a peça só sai pronta depois de testada.',
+          },
+        ],
+      },
+      {
+        __component: 'blocks.pricing',
+        headline: 'Pacotes',
+        subheadline:
+          'Dois pontos de entrada. Nenhum deles é fechado no molde — o escopo final é ajustado depois de entendermos sua operação.',
+        plans: [
+          {
+            badge: 'Mais procurado',
+            eyebrow: 'Operação contínua',
+            title: 'Pacote Base',
+            description:
+              'O motor de aquisição do seu negócio rodando todo mês: estratégia, verba de mídia bem aplicada e criativos que convertem.',
+            price: 'Valor sob medida',
+            features: [
+              { text: 'Estratégia de marketing sob medida' },
+              { text: 'Gestão de tráfego pago (Meta / Google)' },
+              { text: 'Criativos voltados para performance' },
+              { text: 'Acompanhamento e relatórios periódicos' },
+            ],
+            ctaLabel: 'Vem orçar conosco',
+            ctaLink: '#contato',
+            featured: true,
+          },
+          {
+            eyebrow: 'Diagnóstico profundo',
+            title: 'Planejamento Estratégico',
+            description:
+              'Uma estruturação completa antes de colocar dinheiro em anúncio: entendemos o que já foi feito para não repetir erro.',
+            price: 'Valor sob medida',
+            features: [
+              { text: 'Análise das contas de anúncio existentes' },
+              { text: 'Auditoria do material digital atual' },
+              { text: 'Cliente oculto e análise de concorrência' },
+              { text: 'Plano de ação priorizado, com próximos passos' },
+            ],
+            ctaLabel: 'Vem orçar conosco',
+            ctaLink: '#contato',
+          },
+        ],
+        note: 'Os dois pacotes são modulares — muitos clientes começam pelo Planejamento Estratégico e migram para o Pacote Base em seguida.',
+      },
+      {
+        __component: 'blocks.value-proposition',
+        headline: 'Setores atendidos',
+        text: 'Times envolvidos em projetos de diferentes naturezas — de imobiliário a estética, de finanças a automotivo.',
+        cards: [
+          { icon: '🏠', title: 'Imobiliário', description: 'Lançamentos & corretoras' },
+          { icon: '💇', title: 'Estética & Saúde', description: 'Clínicas capilares' },
+          { icon: '🏦', title: 'Financeiro', description: 'Bancos digitais' },
+          { icon: '🏍️', title: 'Automotivo', description: 'Concessionárias' },
+        ],
+      },
+      {
+        __component: 'blocks.cta-form',
+        headline: 'Vamos forjar o próximo projeto?',
+        subheadline:
+          'Conte pra gente o momento do seu negócio e a gente monta, junto com você, o escopo certo — sem prateleira, sem molde pronto.',
+        selectOptions: [],
+        ctaLabel: 'Enviar mensagem',
+        whatsappNumber: '5511900000000',
+        whatsappMessage: 'Olá! Vim pelo site da Forge Company.',
+      },
+      {
+        __component: 'blocks.footer',
+        links: [],
+        phones: [],
+        socialLinks: [],
+        copyright: 'Forge Co. — Marketing forjado sob medida · © 2026',
+      },
+    ],
+  },
 ]
 
 async function main() {
@@ -429,7 +581,9 @@ async function main() {
         primaryColor: c.primaryColor,
         secondaryColor: c.secondaryColor,
         fontFamily: c.fontFamily,
-        blocks: buildBlocks(c),
+        // A client can supply a fully custom `blocks` array (bespoke layout) instead of
+        // the generic header/hero/trust/stats/value/differentials/testimonials/form/footer template.
+        blocks: c.blocks ?? buildBlocks(c),
       }
       await app.documents(UID).create({ data, status: 'published' })
 

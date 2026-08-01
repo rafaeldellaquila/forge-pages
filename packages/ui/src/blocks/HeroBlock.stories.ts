@@ -45,3 +45,22 @@ export const WithoutBadge: Story = {
     ctaSecondaryLink: '#sobre',
   },
 }
+
+export const Ember: Story = {
+  args: {
+    __component: 'blocks.hero',
+    variant: 'ember',
+    headline: 'Forge Co. — Built to Convert',
+    subheadline:
+      'Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio.',
+    ctaPrimaryLabel: 'Ver pacotes',
+    ctaPrimaryLink: '#pacotes',
+    ctaSecondaryLabel: 'Falar com a gente',
+    ctaSecondaryLink: '#contato',
+    image: {
+      // biome-ignore lint/security/noSecrets: placeholder image URL, not a secret
+      url: 'https://placehold.co/400x120/141009/F3EADB?text=Forge+Co.',
+      alternativeText: 'Forge Co.',
+    },
+  },
+}

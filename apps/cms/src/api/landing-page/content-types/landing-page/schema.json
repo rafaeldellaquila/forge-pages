@@ -39,7 +39,8 @@
         "blocks.differentials",
         "blocks.testimonials",
         "blocks.cta-form",
-        "blocks.footer"
+        "blocks.footer",
+        "blocks.pricing"
       ]
     }
   }

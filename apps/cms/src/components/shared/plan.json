@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_shared_plans",
+  "info": {
+    "displayName": "Plan",
+    "icon": "priceTag"
+  },
+  "options": {},
+  "attributes": {
+    "badge": { "type": "string" },
+    "eyebrow": { "type": "string" },
+    "title": { "type": "string", "required": true },
+    "description": { "type": "text" },
+    "price": { "type": "string", "required": true },
+    "features": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.plan-feature"
+    },
+    "ctaLabel": { "type": "string", "required": true },
+    "ctaLink": { "type": "string", "required": true },
+    "featured": { "type": "boolean", "default": false }
+  }
+}

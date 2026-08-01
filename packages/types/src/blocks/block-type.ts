@@ -3,6 +3,7 @@ import type { DifferentialsBlock } from './differentials'
 import type { FooterBlock } from './footer'
 import type { HeaderBlock } from './header'
 import type { HeroBlock } from './hero'
+import type { PricingBlock } from './pricing'
 import type { ServicesBlock } from './services'
 import type { StatsBlock } from './stats'
 import type { TestimonialsBlock } from './testimonials'
@@ -20,3 +21,4 @@ export type BlockType =
   | TestimonialsBlock
   | CtaFormBlock
   | FooterBlock
+  | PricingBlock

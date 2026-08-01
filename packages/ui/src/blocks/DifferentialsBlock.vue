@@ -14,6 +14,13 @@ const props = defineProps<DifferentialsBlock>()
       <ul class="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
         <li v-for="(item, i) in props.items" :key="i" class="flex items-start gap-4">
           <span
+            v-if="item.tag"
+            class="mt-1 shrink-0 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide bg-[var(--tenant-secondary)] text-white"
+          >
+            {{ item.tag }}
+          </span>
+          <span
+            v-else
             class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--tenant-secondary)] text-white"
           >
             {{ item.icon }}

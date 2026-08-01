@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_blocks_pricings",
+  "info": {
+    "displayName": "Pricing",
+    "icon": "priceTag",
+    "description": "Headline plus a set of pricing/plan cards"
+  },
+  "options": {},
+  "attributes": {
+    "headline": { "type": "string", "required": true },
+    "subheadline": { "type": "text" },
+    "plans": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.plan"
+    },
+    "note": { "type": "text" }
+  }
+}

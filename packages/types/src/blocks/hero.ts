@@ -1,5 +1,8 @@
+export type HeroVariant = 'default' | 'ember'
+
 export interface HeroBlock {
   __component: 'blocks.hero'
+  variant?: HeroVariant
   badgeText?: string
   headline: string
   subheadline: string
