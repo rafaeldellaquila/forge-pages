@@ -51,3 +51,11 @@ export const WithTags: Story = {
     ],
   },
 }
+
+export const WithTagsOnDark: Story = {
+  args: {
+    ...WithTags.args,
+    background: { type: 'transparent' },
+  },
+  parameters: { backgrounds: { default: 'dark' } },
+}

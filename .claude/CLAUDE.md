@@ -149,9 +149,21 @@ canonical_url   text
 primary_color   text
 secondary_color text
 font_family     text
+secondary_font_family text
+background_type text check (background_type in ('transparent','solid','gradient','image','fine-line-texture','glass'))
+background_color_token text check (background_color_token in ('primary','secondary','custom'))
+background_color_custom text
+background_gradient_to_token text check (background_gradient_to_token in ('primary','secondary','custom'))
+background_gradient_to_custom text
+background_image_url text
+divider_glyph   text
 created_at      timestamptz default now()
 updated_at      timestamptz default now()
 ```
+
+`background_*`/`divider_glyph` are the page-level layer of the tenant background system
+(ADR-0005) — null `background_type` falls back to the plain default. Per-block overrides
+live in Strapi's `shared.background` component instead (see §6).
 
 ### leads
 
@@ -194,16 +206,19 @@ Each block must have a corresponding TypeScript interface in `packages/types/src
 
 | Block UID                  | Key fields                                                                                                                        |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `blocks.header`            | logo, menu_links[], cta_label, cta_whatsapp, cta_message                                                                          |
-| `blocks.hero`              | badge_text, headline, subheadline, cta_primary_label, cta_primary_link, cta_secondary_label, cta_secondary_link, image, image_alt |
+| `blocks.header`            | variant (`default`\|`centered`), background, logo, menu_links[], cta_label, cta_whatsapp, cta_message                            |
+| `blocks.hero`              | variant (`default`\|`centered`), background, badge_text, headline, subheadline, cta_primary_label, cta_primary_link, cta_secondary_label, cta_secondary_link, image, image_alt |
 | `blocks.trust-icons`       | items[]: { icon, text }                                                                                                           |
 | `blocks.stats`             | items[]: { number, label }                                                                                                        |
 | `blocks.value-proposition` | headline, text, cards[]: { icon, title, description }                                                                             |
 | `blocks.services`          | headline, tabs[]: { label, title, text, cta_label, cta_link, image }                                                              |
-| `blocks.differentials`     | headline, text, items[]: { icon, text }                                                                                           |
+| `blocks.differentials`     | background, headline, text, items[]: { icon, tag, text }                                                                          |
 | `blocks.testimonials`      | headline, items[]: { name, role, photo, text, rating }                                                                            |
 | `blocks.cta-form`          | headline, subheadline, select_options[]: { label, value }, cta_label, whatsapp_number, whatsapp_message                           |
 | `blocks.footer`            | logo, description, links[], phones[], schedule, social_links[], copyright, privacy_link                                           |
+| `blocks.pricing`           | headline, subheadline, plans[], note                                                                                              |
+
+**`shared.background`** (ADR-0005): `type` (`transparent`\|`solid`\|`gradient`\|`image`\|`fine-line-texture`\|`glass`, default `transparent`), `colorToken` (`primary`\|`secondary`\|`custom`), `customColor`/`gradientToCustom` (`plugin::color-picker.color` custom field), `gradientToToken`, `image`, `effect` (`none`\|`particles`). Absent/`transparent` means the block shows whatever's behind it (page background, or current scroll content for the sticky Header). `packages/ui`'s `resolveBackground()` is the single place this shape turns into CSS — reused by every block and by `useTenantHead.ts` for the page-level background.
 
 ---
 
@@ -470,3 +485,28 @@ Apply to every new endpoint, form, or database operation:
 ### 2026-08-01: Strapi MCP server enabled (`config/server.ts` → `mcp.enabled: true`, Strapi ≥5.47)
 - Native endpoint is HTTP-only (`/mcp`) — bridged into `.mcp.json`/`.vscode/mcp.json.example` via `npx mcp-remote <url> --header "Authorization: Bearer <token>"`. Requires an **Admin token** (Settings → Admin tokens), not a Content API token; token scope determines which tools are exposed (read-only vs full CRUD/publish).
 - Token isn't a Strapi runtime var — it's consumed by the MCP client process, so it lives in the root `.env` **CLOUD OPS** section (`STRAPI_MCP_ADMIN_TOKEN`, not in the `env:sync` allowlist) and is referenced in `.mcp.json` as `${STRAPI_MCP_ADMIN_TOKEN:-}` (Claude Code CLI expands `${VAR}` in `command`/`args`/`env`/`headers` at launch; the empty default keeps the config parseable before the token is set — expansion does **not** work in the Desktop app).
+
+### 2026-08-01: Content Manager Preview (ADR-0004)
+- **`preview.config.allowedOrigins` is `string[]`, not a string** — Strapi 5.50's actual `PreviewConfig` type (`node_modules/@strapi/types`) is `allowedOrigins?: string[]`, even though official doc examples pass `env('CLIENT_URL')` (a bare string) and type-check fine in their own snippets. Caught by `strapi develop`'s TS compile step, not from the docs; wrap in an array.
+- **`PreviewHandlerParams.status` is `string | undefined`**, not just `string` — `new URLSearchParams({ ..., status })` fails to compile when `status` can be `undefined`; coerce with `status ?? 'published'`.
+- **Fixed a pre-existing gap**: `NUXT_PUBLIC_SITE_URL` was documented in `docs/SECRETS.md` as a `cms` (CORS) consumer but was never in `.mise.toml`'s `CMS_VARS` allowlist, so it silently never reached `apps/cms/.env` — Strapi's CORS config read it via a raw `process.env` fallback instead. Now also used as `CLIENT_URL` for the preview handler, and properly synced.
+- **The "read-only" `STRAPI_API_TOKEN`** (Phase 3) *can* read `status=draft` entries — verified end-to-end via `preview-blocks.get.ts`. "Read-only" refers to write access, not publication status; no separate draft-read token was needed.
+- **Verifying draft vs. published content without a browser/admin login**: the `strapi-mcp` tools (`list_landing-page`, `update_landing-page`, `discard_landing-page_draft`) let you create a real draft (edit without publishing) and revert it (`discard_draft`) entirely headlessly — used to prove `/preview?status=draft` returns edited content while `/` (Host-resolved, production) still serves the last-published version, without ever touching the Strapi admin UI.
+- **Not verified in-browser**: Strapi's Live Preview keystroke-level auto-refresh (postMessage `strapiUpdate`) — Strapi's own docs already flag it as unreliable for Dynamic Zone fields (this product's entire content model), so `PreviewBridge.vue`'s handshake is a best-effort convenience, not confirmed WYSIWYG. Confirm actual behavior next time someone previews live in the CM.
+
+### 2026-08-04: Tenant background system (ADR-0005) — Header/Hero variants + seam divider
+- **Canvas can't read CSS custom properties**: `ctx.fillStyle = 'rgba(var(--tenant-primary), …)'` silently fails — Canvas 2D never resolves CSS vars. `BackgroundParticles.vue` reads the *computed* value instead (`getComputedStyle(document.documentElement).getPropertyValue('--tenant-primary')`), then converts it to an `r,g,b` triplet via a throwaway `<span style="color:…">` + `getComputedStyle(...).color` (the browser normalizes any CSS color syntax — hex, named, `color-mix()` — to `rgb(...)`, so this handles more than a hand-rolled hex parser would).
+- **`color-mix(in srgb, …)` replaces hex/rgba math in JS** for translucency (the header's `glass` tint, the fine-line-texture's faded line) — modern-baseline CSS, no JS color parsing needed, and it composes with CSS var references directly (`color-mix(in srgb, var(--tenant-primary) 75%, transparent)`).
+- **A sticky Header can't default to `transparent` like other blocks**: every other block's "no background config" means `type: 'transparent'` (show whatever's behind), but a sticky header with nothing behind it but scrolling content becomes illegible. `HeaderBlock.vue` special-cases its own fallback to `{ type: 'glass', colorToken: 'custom', customColor: '#ffffff' }` — reproduces the old hardcoded `bg-white/90 backdrop-blur` exactly, so undecorated tenants are unaffected.
+- **PostgREST can't alias flat columns into nested JSON** in a `.select()` string — `tenant.ts` selects the six `background_*` columns flat (aliased to camelCase) and assembles the nested `Background` object in a small `toBackground()` step after the query returns, not in the select itself.
+- **Official `@strapi/plugin-color-picker`** (5.50.0, version-locked to `@strapi/strapi` — same pinning pattern as `@strapi/provider-upload-aws-s3`) registers a custom field at `plugin::color-picker.color`, backed by `type: "string"` in the schema (`"customField": "plugin::color-picker.color"` alongside `"type": "string"`, not `"type": "customField"` — the UID goes in a separate key). Registration is `'color-picker': { enabled: true }` in `config/plugins.ts`.
+- **The particle effect moved from a Hero variant to a `Background.effect`**, decoupling it from layout and fixing a pre-existing ADR-0002 violation where the old `ember` variant hardcoded hex colors instead of tenant vars. `HeroVariant` is now purely layout (`default`\|`centered`); the retired `'ember'` value only ever existed in the Forge Company seed, which was rewritten (not migrated — nothing was in production).
+- **Deliberately deferred (again)**: Header and Hero both now have two variants each and still use single-file internal branching rather than the ADR-0002-anticipated per-block-directory split — same "earns its keep at a third layout" call already made for Hero's original `ember`/`default` split. Footer's hardcoded `bg-gray-900` (zero tenant vars) is a known, separate gap, out of scope here.
+
+### 2026-08-04: Strapi schema isolation incident (ADR-0006)
+- **Root cause of "Strapi login broken + data gone"**: local Strapi and the Supabase app tables shared the same Postgres **database and schema** (`postgres`/`public`) — Strapi's `DATABASE_SCHEMA` had never been set, defaulting to `public`. A routine `supabase db reset --workdir infra` (testing a new migration) recreates that schema from `infra/supabase/migrations` + seed, which silently wiped all 78 Strapi-owned tables (`admin_users` included) along with it — a system Supabase's CLI has no knowledge of. Strapi's still-running dev server rebuilt its own schema fresh on the next request, so the "admin account" afterward was a brand-new empty one, not the original — hence "wrong password" (right password, wrong/nonexistent account). Content itself survived because `seed-content.cjs` had been re-run; the admin account had no equivalent recovery path.
+- **Fix**: `DATABASE_SCHEMA=strapi` (root `.env` → synced to `apps/cms/.env` via `CMS_VARS`) isolates Strapi into its own Postgres schema. Existing tables/sequences were migrated with `ALTER TABLE/SEQUENCE ... SET SCHEMA strapi` (data-preserving) rather than starting empty. Confirmed via `\dt` diff: exactly 4 tables (`clients`, `landing_pages`, `leads`, `webhook_retries`) are Supabase-owned in `public`; everything else Strapi generates.
+- **Separate, pre-existing bug found in the same incident**: `apps/cms/config/plugins.ts` had no `email` provider configured at all, so `POST /admin/forgot-password` always returned `204` (by design, to prevent user enumeration) while silently never sending anything — no local MTA, no provider package installed. Fixed with `@strapi/provider-email-nodemailer` (pinned `5.50.0`, matching the core-version-lock convention used for the S3 upload provider and color-picker plugin) against Resend's SMTP relay (`smtp.resend.com`), reusing the existing `RESEND_API_KEY`/`RESEND_FROM_EMAIL` — now also synced into `apps/cms/.env` (previously Edge-Function-only, per the 2026-07-20 Resend learning).
+- **`admin@forgecompany.localhost`-style local-dev admin emails can never receive password resets** regardless of provider config — `.localhost` isn't a routable domain (no MX records). Any admin account that needs a working forgot-password flow needs a real, receivable email address.
+- **Recovery without a working login or reset email**: `strapi admin:create-user -e <email> -p <password> -f <first> -l <last>` (run from `apps/cms`) creates a new admin directly via CLI, bypassing both the UI and email entirely — the actual unblock used here.
+- **`.env.strapi` at repo root was untracked by luck, not by rule** — none of `.gitignore`'s `.env` patterns (`.env`, `.env.local`, `.env.*.local`, `.env.production`, `.env.staging`) match arbitrary `.env.<name>` files. Added `.env.strapi` explicitly; any future ad-hoc `.env.*` file needs the same explicit entry, the wildcard patterns don't cover it.

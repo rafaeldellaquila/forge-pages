@@ -7,6 +7,12 @@
   },
   "options": {},
   "attributes": {
+    "variant": {
+      "type": "enumeration",
+      "enum": ["default", "centered"],
+      "default": "default"
+    },
+    "background": { "type": "component", "component": "shared.background" },
     "logo": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
     "menuLinks": { "type": "component", "repeatable": true, "component": "shared.link" },
     "ctaLabel": { "type": "string", "required": true },

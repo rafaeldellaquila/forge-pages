@@ -1,8 +1,11 @@
-export type HeroVariant = 'default' | 'ember'
+import type { Background } from '../shared'
+
+export type HeroVariant = 'default' | 'centered'
 
 export interface HeroBlock {
   __component: 'blocks.hero'
   variant?: HeroVariant
+  background?: Background
   badgeText?: string
   headline: string
   subheadline: string

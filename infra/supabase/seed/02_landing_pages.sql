@@ -37,7 +37,8 @@ insert into public.landing_pages
 -- Forge Company's own landing page — locally on *.localhost for review before promoting
 -- to the real forgecompany.example.com domain in production.
 insert into public.landing_pages
-  (id, client_id, domain, status, seo_title, primary_color, secondary_color, font_family, secondary_font_family) values
+  (id, client_id, domain, status, seo_title, primary_color, secondary_color, font_family, secondary_font_family,
+   background_type, background_color_token, background_color_custom, divider_glyph) values
   (
     '00000000-0000-0000-0001-000000000004',
     '00000000-0000-0000-0000-000000000004',
@@ -47,5 +48,9 @@ insert into public.landing_pages
     '#FF6A2C',
     '#FFBA4A',
     'Montserrat',
-    'JetBrains Mono'
+    'JetBrains Mono',
+    'solid',
+    'custom',
+    '#141009',
+    '⚒'
   );
