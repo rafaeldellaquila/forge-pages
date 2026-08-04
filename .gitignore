@@ -8,6 +8,7 @@ node_modules/
 .env.*.local
 .env.production
 .env.staging
+.env.strapi
 
 # Build outputs
 dist/

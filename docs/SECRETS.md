@@ -48,7 +48,9 @@ Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
 | `STRAPI_API_TOKEN` | web | local read-only token | GH secret + CF Pages env |
 | `APP_KEYS`, `API_TOKEN_SALT`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `ENCRYPTION_KEY` | cms | generated per machine (`openssl rand -base64 16`) | Strapi host dashboard |
 | `DATABASE_*` | cms | local Supabase PG (`127.0.0.1:54322`) | `DATABASE_URL` on Strapi host |
+| `DATABASE_SCHEMA` | cms | `strapi` — isolates Strapi's own tables from the `public` schema Supabase migrations own, so `supabase db reset` can't wipe CMS data/admin accounts | Strapi host dashboard (same isolation applies) |
 | `SUPABASE_S3_*` | cms | empty (local disk uploads) | Strapi host dashboard |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `RESEND_NOTIFICATION_EMAIL` | cms (admin panel email, via `@strapi/provider-email-nodemailer` → `smtp.resend.com`) + edge | same Resend account/keys as lead notifications | Strapi host dashboard + Supabase function secrets |
 
 ### Integrations
 
@@ -62,7 +64,8 @@ Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
 | `SENTRY_DSN` | cms | empty | Strapi host dashboard |
 | `SENTRY_AUTH_TOKEN` | ci (source maps) | — | GH secret |
 | `FLIPT_URL` / `FLIPT_TOKEN` | web (server) | empty (fails open) | GH secret + CF Pages env |
-| `NUXT_PUBLIC_SITE_URL` | web, cms (CORS) | empty | GH secret + CF Pages env |
+| `NUXT_PUBLIC_SITE_URL` | web, cms (CORS, Preview `CLIENT_URL`) | empty | GH secret + CF Pages env + Strapi host dashboard |
+| `PREVIEW_SECRET` | web, cms | generated locally (`openssl rand -hex 32`) | GH secret + CF Pages env + Strapi host dashboard (same value both sides) |
 
 ### Lead notifications (Edge Function)
 

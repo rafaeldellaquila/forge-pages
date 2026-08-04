@@ -420,6 +420,8 @@ const clients = [
     blocks: [
       {
         __component: 'blocks.header',
+        variant: 'centered',
+        background: { type: 'glass', colorToken: 'custom', customColor: '#141009' },
         menuLinks: [
           { label: 'Manifesto', url: '#manifesto' },
           { label: 'Processo', url: '#processo' },
@@ -431,7 +433,13 @@ const clients = [
       },
       {
         __component: 'blocks.hero',
-        variant: 'ember',
+        variant: 'centered',
+        background: {
+          type: 'solid',
+          colorToken: 'custom',
+          customColor: '#141009',
+          effect: 'particles',
+        },
         headline: 'Forge Co. — Marketing forjado sob medida',
         subheadline:
           'Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio — sem propostas de prateleira.',

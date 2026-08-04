@@ -46,3 +46,33 @@ export const WithCtaLink: Story = {
     ctaLink: '#contato',
   },
 }
+
+export const Centered: Story = {
+  args: {
+    __component: 'blocks.header',
+    variant: 'centered',
+    menuLinks: [
+      { label: 'Manifesto', url: '#manifesto' },
+      { label: 'Processo', url: '#processo' },
+      { label: 'Pacotes', url: '#pacotes' },
+      { label: 'Setores', url: '#setores' },
+    ],
+    ctaLabel: 'Forjar proposta',
+    ctaLink: '#contato',
+  },
+}
+
+export const CenteredGlassOnDark: Story = {
+  args: {
+    ...Centered.args,
+    background: { type: 'glass', colorToken: 'custom', customColor: '#141009' },
+  },
+  parameters: { backgrounds: { default: 'dark' } },
+}
+
+export const Transparent: Story = {
+  args: {
+    ...Centered.args,
+    background: { type: 'transparent' },
+  },
+}

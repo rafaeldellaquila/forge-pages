@@ -7,6 +7,7 @@
   },
   "options": {},
   "attributes": {
+    "background": { "type": "component", "component": "shared.background" },
     "headline": { "type": "string", "required": true },
     "text": { "type": "text" },
     "items": { "type": "component", "repeatable": true, "component": "shared.icon-text" }

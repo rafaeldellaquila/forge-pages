@@ -1,3 +1,5 @@
+import type { Background } from './shared'
+
 // Render mode
 export type RenderMode = 'blocks' | 'custom'
 
@@ -6,6 +8,8 @@ export type LandingPageStatus = 'draft' | 'published' | 'archived'
 
 // Lead status
 export type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost'
+
+export * from './shared'
 
 // Webhook channel
 export type WebhookChannel = 'email' | 'whatsapp'
@@ -25,6 +29,8 @@ export interface LandingPageConfig {
   secondaryColor: string | null
   fontFamily: string | null
   secondaryFontFamily: string | null
+  background: Background | null
+  dividerGlyph: string | null
 }
 
 // Lead payload (form → DB)

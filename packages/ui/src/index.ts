@@ -1,3 +1,10 @@
+// Shared components
+
+export { default as BackgroundParticles } from './components/BackgroundParticles.vue'
+export { default as SeamDivider } from './components/SeamDivider.vue'
+export type { ResolvedBackground } from './utils/background'
+export { resolveBackground } from './utils/background'
+
 // Block components
 
 export { default as CtaFormBlock } from './blocks/CtaFormBlock.vue'

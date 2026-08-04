@@ -46,10 +46,10 @@ export const WithoutBadge: Story = {
   },
 }
 
-export const Ember: Story = {
+export const Centered: Story = {
   args: {
     __component: 'blocks.hero',
-    variant: 'ember',
+    variant: 'centered',
     headline: 'Forge Co. — Built to Convert',
     subheadline:
       'Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio.',
@@ -57,10 +57,42 @@ export const Ember: Story = {
     ctaPrimaryLink: '#pacotes',
     ctaSecondaryLabel: 'Falar com a gente',
     ctaSecondaryLink: '#contato',
-    image: {
+  },
+}
+
+export const CenteredWithParticles: Story = {
+  args: {
+    ...Centered.args,
+    background: {
+      type: 'solid',
+      colorToken: 'custom',
+      customColor: '#141009',
+      effect: 'particles',
+    },
+  },
+}
+
+export const Gradient: Story = {
+  args: {
+    ...Default.args,
+    background: { type: 'gradient', colorToken: 'primary', gradientToToken: 'secondary' },
+  },
+}
+
+export const FineLineTexture: Story = {
+  args: {
+    ...Centered.args,
+    background: { type: 'fine-line-texture', colorToken: 'custom', customColor: '#141009' },
+  },
+}
+
+export const ImageBackground: Story = {
+  args: {
+    ...Centered.args,
+    background: {
+      type: 'image',
       // biome-ignore lint/security/noSecrets: placeholder image URL, not a secret
-      url: 'https://placehold.co/400x120/141009/F3EADB?text=Forge+Co.',
-      alternativeText: 'Forge Co.',
+      image: { url: 'https://placehold.co/1600x900/141009/F3EADB?text=Forge+Co.' },
     },
   },
 }

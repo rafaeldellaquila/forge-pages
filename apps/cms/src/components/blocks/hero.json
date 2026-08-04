@@ -9,9 +9,10 @@
   "attributes": {
     "variant": {
       "type": "enumeration",
-      "enum": ["default", "ember"],
+      "enum": ["default", "centered"],
       "default": "default"
     },
+    "background": { "type": "component", "component": "shared.background" },
     "badgeText": { "type": "string" },
     "headline": { "type": "string", "required": true },
     "subheadline": { "type": "text", "required": true },

@@ -29,6 +29,27 @@ const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin =>
   const hasSupabaseS3Credentials = Boolean(env('SUPABASE_S3_ACCESS_KEY_ID'))
 
   return {
+    'color-picker': {
+      enabled: true,
+    },
+    email: {
+      config: {
+        provider: 'nodemailer',
+        providerOptions: {
+          host: 'smtp.resend.com',
+          port: 465,
+          secure: true,
+          auth: {
+            user: 'resend',
+            pass: env('RESEND_API_KEY'),
+          },
+        },
+        settings: {
+          defaultFrom: env('RESEND_FROM_EMAIL'),
+          defaultReplyTo: env('RESEND_NOTIFICATION_EMAIL'),
+        },
+      },
+    },
     'users-permissions': {
       config: {
         jwtManagement: 'refresh',
