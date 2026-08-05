@@ -90,6 +90,13 @@ export type HeroVariant = 'default' | 'centered'
 
 export interface HeroBlock {
   type: 'hero'
+  /**
+   * Fragment target for in-page navigation (`#processo`), so a header menu can
+   * link to this block. Belongs to the content, not the component: the same
+   * block type is used more than once per page and each occurrence needs its own
+   * anchor. Blocks whose components land in Fase 3 gain this field with them.
+   */
+  anchorId?: string
   variant?: HeroVariant
   background?: Background
   badgeText?: string
@@ -115,6 +122,8 @@ export interface StatsBlock {
 
 export interface ValuePropositionBlock {
   type: 'value-proposition'
+  anchorId?: string
+  eyebrow?: string
   headline: string
   text?: string
   cards: { icon: string; title: string; description: string; stepLabel?: string }[]
@@ -135,7 +144,9 @@ export interface ServicesBlock {
 
 export interface DifferentialsBlock {
   type: 'differentials'
+  anchorId?: string
   background?: Background
+  eyebrow?: string
   headline: string
   text?: string
   items: { icon?: string; tag?: string; text: string }[]
@@ -155,6 +166,7 @@ export interface TestimonialsBlock {
 
 export interface CtaFormBlock {
   type: 'cta-form'
+  anchorId?: string
   headline: string
   subheadline?: string
   selectOptions: { label: string; value: string }[]
@@ -177,6 +189,8 @@ export interface FooterBlock {
 
 export interface PricingBlock {
   type: 'pricing'
+  anchorId?: string
+  eyebrow?: string
   headline: string
   subheadline?: string
   plans: {

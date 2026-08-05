@@ -1,0 +1,96 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="heroGlow" cx="50%" cy="0%" r="75%" gradientTransform="translate(0 -0.1) scale(1 0.55)">
+      <stop offset="0%" stop-color="#FF6A2C" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#FF6A2C" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hairline" width="4.24" height="4.24" patternUnits="userSpaceOnUse" patternTransform="rotate(115)">
+      <rect width="4.24" height="4.24" fill="transparent"/>
+      <rect width="1" height="4.24" fill="rgba(255,255,255,0.012)"/>
+    </pattern>
+    <filter id="emberGlow" x="-300%" y="-300%" width="700%" height="700%">
+      <feGaussianBlur stdDeviation="1.6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#141009"/>
+  <rect width="1920" height="1080" fill="url(#heroGlow)"/>
+  <rect width="1920" height="1080" fill="url(#hairline)"/>
+
+  <g>
+    <circle cx="1455.6" cy="886.8" r="0.69" fill="rgba(255,186,74,0.657)" filter="url(#emberGlow)"/>
+    <circle cx="1773.2" cy="264.0" r="2.57" fill="rgba(255,106,44,0.220)" filter="url(#emberGlow)"/>
+    <circle cx="1396.4" cy="266.3" r="1.27" fill="rgba(255,186,74,0.222)" filter="url(#emberGlow)"/>
+    <circle cx="773.4" cy="1030.6" r="1.44" fill="rgba(255,106,44,0.758)" filter="url(#emberGlow)"/>
+    <circle cx="1330.0" cy="375.5" r="1.61" fill="rgba(255,186,74,0.299)" filter="url(#emberGlow)"/>
+    <circle cx="964.5" cy="532.2" r="1.60" fill="rgba(255,106,44,0.409)" filter="url(#emberGlow)"/>
+    <circle cx="1535.0" cy="413.3" r="0.83" fill="rgba(255,106,44,0.325)" filter="url(#emberGlow)"/>
+    <circle cx="815.7" cy="821.9" r="0.98" fill="rgba(255,186,74,0.612)" filter="url(#emberGlow)"/>
+    <circle cx="1663.7" cy="573.6" r="1.75" fill="rgba(255,106,44,0.438)" filter="url(#emberGlow)"/>
+    <circle cx="703.9" cy="717.8" r="1.23" fill="rgba(255,106,44,0.539)" filter="url(#emberGlow)"/>
+    <circle cx="1118.2" cy="224.7" r="2.79" fill="rgba(255,106,44,0.193)" filter="url(#emberGlow)"/>
+    <circle cx="1832.2" cy="788.2" r="1.57" fill="rgba(255,186,74,0.588)" filter="url(#emberGlow)"/>
+    <circle cx="130.7" cy="363.7" r="1.64" fill="rgba(255,186,74,0.290)" filter="url(#emberGlow)"/>
+    <circle cx="1423.6" cy="354.2" r="1.10" fill="rgba(255,186,74,0.284)" filter="url(#emberGlow)"/>
+    <circle cx="568.0" cy="805.9" r="1.76" fill="rgba(255,106,44,0.601)" filter="url(#emberGlow)"/>
+    <circle cx="308.2" cy="924.5" r="2.39" fill="rgba(255,106,44,0.684)" filter="url(#emberGlow)"/>
+    <circle cx="1215.9" cy="-38.9" r="2.20" fill="rgba(255,186,74,0.008)" filter="url(#emberGlow)"/>
+    <circle cx="706.0" cy="985.5" r="1.82" fill="rgba(255,186,74,0.727)" filter="url(#emberGlow)"/>
+    <circle cx="56.1" cy="786.3" r="2.74" fill="rgba(255,186,74,0.587)" filter="url(#emberGlow)"/>
+    <circle cx="138.7" cy="450.1" r="0.61" fill="rgba(255,106,44,0.351)" filter="url(#emberGlow)"/>
+    <circle cx="770.6" cy="699.4" r="1.82" fill="rgba(255,106,44,0.526)" filter="url(#emberGlow)"/>
+    <circle cx="1530.8" cy="294.8" r="2.19" fill="rgba(255,106,44,0.242)" filter="url(#emberGlow)"/>
+    <circle cx="1215.1" cy="911.6" r="0.75" fill="rgba(255,106,44,0.675)" filter="url(#emberGlow)"/>
+    <circle cx="1806.0" cy="606.9" r="1.02" fill="rgba(255,186,74,0.461)" filter="url(#emberGlow)"/>
+    <circle cx="791.7" cy="876.9" r="2.64" fill="rgba(255,106,44,0.650)" filter="url(#emberGlow)"/>
+    <circle cx="218.5" cy="528.2" r="0.90" fill="rgba(255,106,44,0.406)" filter="url(#emberGlow)"/>
+    <circle cx="1753.8" cy="802.7" r="0.72" fill="rgba(255,106,44,0.598)" filter="url(#emberGlow)"/>
+    <circle cx="528.2" cy="989.3" r="0.63" fill="rgba(255,106,44,0.729)" filter="url(#emberGlow)"/>
+    <circle cx="249.3" cy="279.0" r="1.21" fill="rgba(255,186,74,0.231)" filter="url(#emberGlow)"/>
+    <circle cx="751.9" cy="828.0" r="1.62" fill="rgba(255,106,44,0.616)" filter="url(#emberGlow)"/>
+    <circle cx="688.8" cy="-24.3" r="1.08" fill="rgba(255,186,74,0.018)" filter="url(#emberGlow)"/>
+    <circle cx="1033.6" cy="829.0" r="1.61" fill="rgba(255,186,74,0.617)" filter="url(#emberGlow)"/>
+    <circle cx="1887.7" cy="904.1" r="2.70" fill="rgba(255,186,74,0.670)" filter="url(#emberGlow)"/>
+    <circle cx="485.2" cy="-22.3" r="0.87" fill="rgba(255,186,74,0.019)" filter="url(#emberGlow)"/>
+    <circle cx="748.0" cy="-31.5" r="0.91" fill="rgba(255,186,74,0.013)" filter="url(#emberGlow)"/>
+    <circle cx="403.8" cy="582.0" r="2.09" fill="rgba(255,186,74,0.443)" filter="url(#emberGlow)"/>
+    <circle cx="1710.7" cy="292.3" r="1.59" fill="rgba(255,106,44,0.240)" filter="url(#emberGlow)"/>
+    <circle cx="1777.2" cy="373.9" r="1.01" fill="rgba(255,106,44,0.297)" filter="url(#emberGlow)"/>
+    <circle cx="1550.9" cy="622.1" r="2.34" fill="rgba(255,106,44,0.472)" filter="url(#emberGlow)"/>
+    <circle cx="1275.0" cy="509.5" r="1.51" fill="rgba(255,106,44,0.393)" filter="url(#emberGlow)"/>
+    <circle cx="1577.7" cy="316.2" r="2.01" fill="rgba(255,106,44,0.257)" filter="url(#emberGlow)"/>
+    <circle cx="136.6" cy="1023.1" r="2.25" fill="rgba(255,186,74,0.753)" filter="url(#emberGlow)"/>
+    <circle cx="1456.4" cy="103.4" r="2.61" fill="rgba(255,106,44,0.108)" filter="url(#emberGlow)"/>
+    <circle cx="557.9" cy="856.8" r="1.16" fill="rgba(255,186,74,0.636)" filter="url(#emberGlow)"/>
+    <circle cx="1081.0" cy="1048.9" r="0.73" fill="rgba(255,106,44,0.771)" filter="url(#emberGlow)"/>
+    <circle cx="1886.5" cy="404.7" r="1.02" fill="rgba(255,106,44,0.319)" filter="url(#emberGlow)"/>
+    <circle cx="205.0" cy="1016.7" r="1.33" fill="rgba(255,106,44,0.749)" filter="url(#emberGlow)"/>
+    <circle cx="922.7" cy="1007.0" r="1.40" fill="rgba(255,106,44,0.742)" filter="url(#emberGlow)"/>
+    <circle cx="1240.2" cy="53.8" r="1.27" fill="rgba(255,106,44,0.073)" filter="url(#emberGlow)"/>
+    <circle cx="8.7" cy="925.6" r="1.60" fill="rgba(255,186,74,0.685)" filter="url(#emberGlow)"/>
+    <circle cx="483.4" cy="-48.3" r="0.71" fill="rgba(255,106,44,0.001)" filter="url(#emberGlow)"/>
+    <circle cx="1779.0" cy="203.1" r="2.56" fill="rgba(255,106,44,0.178)" filter="url(#emberGlow)"/>
+    <circle cx="1090.7" cy="184.8" r="2.38" fill="rgba(255,106,44,0.165)" filter="url(#emberGlow)"/>
+    <circle cx="957.0" cy="474.3" r="1.21" fill="rgba(255,186,74,0.368)" filter="url(#emberGlow)"/>
+    <circle cx="827.8" cy="49.2" r="0.92" fill="rgba(255,186,74,0.070)" filter="url(#emberGlow)"/>
+    <circle cx="1479.4" cy="308.2" r="1.90" fill="rgba(255,186,74,0.251)" filter="url(#emberGlow)"/>
+    <circle cx="11.1" cy="315.1" r="2.25" fill="rgba(255,106,44,0.256)" filter="url(#emberGlow)"/>
+    <circle cx="589.4" cy="961.0" r="2.37" fill="rgba(255,106,44,0.709)" filter="url(#emberGlow)"/>
+    <circle cx="1619.1" cy="225.2" r="1.74" fill="rgba(255,106,44,0.193)" filter="url(#emberGlow)"/>
+    <circle cx="1789.0" cy="250.3" r="1.79" fill="rgba(255,106,44,0.211)" filter="url(#emberGlow)"/>
+    <circle cx="1225.5" cy="15.2" r="1.35" fill="rgba(255,186,74,0.046)" filter="url(#emberGlow)"/>
+    <circle cx="387.5" cy="25.3" r="0.78" fill="rgba(255,106,44,0.053)" filter="url(#emberGlow)"/>
+    <circle cx="1539.5" cy="477.4" r="2.20" fill="rgba(255,106,44,0.370)" filter="url(#emberGlow)"/>
+    <circle cx="1825.0" cy="586.3" r="1.85" fill="rgba(255,106,44,0.447)" filter="url(#emberGlow)"/>
+    <circle cx="701.2" cy="953.0" r="1.35" fill="rgba(255,106,44,0.704)" filter="url(#emberGlow)"/>
+    <circle cx="796.3" cy="1008.1" r="1.11" fill="rgba(255,186,74,0.743)" filter="url(#emberGlow)"/>
+    <circle cx="1170.7" cy="1022.7" r="2.59" fill="rgba(255,106,44,0.753)" filter="url(#emberGlow)"/>
+    <circle cx="80.4" cy="745.9" r="2.35" fill="rgba(255,186,74,0.559)" filter="url(#emberGlow)"/>
+    <circle cx="524.4" cy="835.0" r="2.39" fill="rgba(255,186,74,0.621)" filter="url(#emberGlow)"/>
+    <circle cx="587.7" cy="988.1" r="2.26" fill="rgba(255,106,44,0.728)" filter="url(#emberGlow)"/>
+  </g>
+</svg>
