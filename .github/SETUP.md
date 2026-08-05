@@ -8,6 +8,12 @@ are present but commented out in each file — activate them when ready (see bot
 
 ## Required secrets
 
+These 11 are exactly what the workflows read — nothing else should be configured. Every
+Supabase value points at the single cloud project this repo targets,
+**`ofpnglnnzpowlzsyfbit`** (org Forge Company). The values are mirrored in the root `.env`
+(`PROD_*` for the Supabase ones), except `NEXT_PUBLIC_SITE_URL`, which is the production
+domain here and a localhost URL in local dev.
+
 ### Supabase
 - `SUPABASE_URL` — Project URL
 - `SUPABASE_PUBLISHABLE_KEY` — Publishable key (`sb_publishable_...`, safe for client)
