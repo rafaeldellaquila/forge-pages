@@ -22,6 +22,11 @@ export function middleware(request: NextRequest) {
   return NextResponse.next({ request: { headers } })
 }
 
+// `/api` is DELIBERATELY inside the matcher (Next's boilerplate excludes it).
+// Route handlers need the tenant too, and letting them read `x-tenant-host` keeps
+// one tenant-resolution path in the app: middleware normalises the Host exactly
+// once and everything downstream goes through getCurrentTenant(). Excluding /api
+// would mean a second copy of the port-stripping rule living in the handlers.
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

@@ -1,17 +1,21 @@
-import { CtaButton } from '@/components/blocks/shared/CtaButton'
+import { LeadForm } from '@/components/blocks/shared/LeadForm'
 import { Section } from '@/components/blocks/shared/Section'
 import type { CtaFormBlock as CtaFormBlockProps } from '@/lib/types/blocks'
 
 /**
- * Fase 1 renders the closing CTA as a WhatsApp deep link — the same thing the
- * page it was ported from does. The lead form itself (fields, Turnstile widget,
- * POST /api/leads) is Fase 2; shipping input fields with no endpoint behind them
- * would drop real leads on the floor.
+ * The closing CTA: a real lead form posting to /api/leads.
+ *
+ * Stays a Server Component so the copy renders server-side — only the form
+ * itself is a Client Component. `whatsappNumber` remains in use as the secondary
+ * route for visitors who would rather just message; keeping it means a tenant
+ * whose number is still a placeholder shows a visibly wrong link rather than
+ * silently dead data.
  */
 export function CtaFormBlock({
   anchorId,
   headline,
   subheadline,
+  selectOptions,
   ctaLabel,
   whatsappNumber,
   whatsappMessage,
@@ -28,9 +32,17 @@ export function CtaFormBlock({
         </p>
       ) : null}
 
-      <div className="flex justify-center">
-        <CtaButton href={`https://wa.me/${whatsappNumber}${message}`} label={ctaLabel} />
-      </div>
+      <LeadForm ctaLabel={ctaLabel} selectOptions={selectOptions} />
+
+      <p className="font-tenant-secondary text-ink-muted mt-8 text-[0.8rem]">
+        Prefere conversar direto?{' '}
+        <a
+          href={`https://wa.me/${whatsappNumber}${message}`}
+          className="text-tenant-primary no-underline hover:underline"
+        >
+          Fale no WhatsApp
+        </a>
+      </p>
     </Section>
   )
 }
