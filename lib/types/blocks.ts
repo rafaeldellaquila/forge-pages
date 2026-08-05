@@ -48,6 +48,8 @@ export interface LandingPageConfig {
 export interface Lead {
   id: string
   landingPageId: string
+  /** Host the lead arrived on, snapshotted at insert time. Not a live join. */
+  domain: string
   name: string
   whatsapp: string
   email: string | null

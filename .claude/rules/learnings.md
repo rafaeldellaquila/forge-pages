@@ -28,3 +28,52 @@ Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (
 - **Prefer a `switch` over a component-map lookup for the block union.** `blockComponentMap[block.type]` cannot be typed without an assertion (`as any` is banned by §10); a `switch` on `block.type` narrows the discriminated union to each component's own props, so the mapping is checked rather than asserted.
 - **A tenant's page background needs its own variable.** `--tenant-background` (the flat fill behind whatever the background type paints) is what the sticky header's glass fallback and the seam glyph mask reference. Without it both had to hardcode a colour, which is correct for exactly one tenant.
 - **Local Chromium without a system Chrome**: the Playwright MCP server is pinned to the `chrome` channel and fails, but Playwright's bundled binary works directly — `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome` (note `chrome-linux64`, not `chrome-linux`).
+
+### 2026-08-05: Fase 2 — lead capture
+
+- **The local Supabase stack does not authenticate `apikey` at all.** A garbage
+  `sb_publishable_…` value and *no key whatsoever* both return 200 on a published-row read
+  against `127.0.0.1:54321` — every request runs as `anon` regardless of what you send. So a
+  read path passing locally proves nothing about the key being correct, and the first thing
+  that ever notices a wrong key is the first operation needing `service_role`, which fails
+  as `permission denied for table <x>` rather than as an auth error. **Diagnose a stray
+  `permission denied` as "wrong role", not "wrong grants"** — check the key before the
+  policies.
+- **Keys in `.env` drifted to the cloud project's values under a local `SUPABASE_URL`.**
+  `SUPABASE_PUBLISHABLE_KEY` and `SUPABASE_SECRET_KEY` were byte-identical to their `PROD_*`
+  counterparts while `SUPABASE_URL` pointed at `127.0.0.1:54321`. Combined with the item
+  above this is silent: reads work (degraded to `anon`), writes fail. Verify with
+  `pnpm exec supabase status --workdir infra` rather than assuming.
+- **Neither mise nor Next.js overrides a variable already present in the environment, so a
+  stale value in the shell that launched your tooling silently beats a corrected `.env`.**
+  After fixing the keys in `.env`, `next dev` still used the old ones: they were exported in
+  the environment Claude Code itself was started from (nothing in `~/.zshrc` — just
+  inherited), and `_.file = ".env"` fills gaps rather than replacing. `mise env` printed the
+  *correct* value the whole time, which makes this look impossible. Diagnose by reading the
+  server's real environment — `tr '\0' '\n' < /proc/$(pgrep -f "next[-]server")/environ` —
+  not by re-reading the file. Fix by restarting the launching shell, or per-run with
+  `env -u VAR … <command>`, which lets Next's own dotenv loader supply the file value.
+- **`wrangler dev` loads the entire root `.env` into the Worker env, and it beats shell
+  exports.** Every key in the file shows up in the startup banner as
+  `env.X ("(hidden)") Environment Variable local`, including `PROD_*` and unrelated tokens.
+  A local Worker run therefore silently uses *production* credentials. Override per-run with
+  `wrangler dev --var KEY:VALUE` (shell exports are ignored). **Verify before Fase 4 whether
+  `wrangler deploy` also uploads `.env`** — if it does, the deploy needs an explicit
+  allowlist, not a file that happens to contain every secret on the machine.
+- **`pkill -f "next-server"` kills its own shell.** `-f` matches full command lines and the
+  pkill command's own line contains the pattern, so the wrapper dies with the target and the
+  rest of the compound command never runs (exit 144, no log file created). Bracket the
+  pattern: `pkill -f "next[-]server"`.
+- **Next 16 refuses a second `next dev` for the same project directory, whatever the port.**
+  It prints "You can access the existing server at … or run kill <pid>" and exits 1;
+  `--port 3001` does not help. To verify with different env values you must take over the
+  running server, not run beside it.
+- **Turnstile's dummy keys are a matched pair of behaviours, not just "test keys".** Secret
+  `1x0000000000000000000000000000000AA` passes *any* token, so it cannot demonstrate the
+  rejection path or `timeout-or-duplicate`; the always-fail secret
+  (`2x` prefix, same shape) rejects every token, which is what proves the siteverify verdict
+  is honoured rather than short-circuited on an empty token. Verifying both needs two runs.
+- **Zod's default object strip is what enforces the trust boundary.** A body carrying
+  `landing_page_id` and `status: 'converted'` produced a row on the correct tenant with
+  `status = 'new'` — the unknown keys never reach the insert. Worth an explicit test rather
+  than trust: switching a schema to `.passthrough()` would silently open it.
