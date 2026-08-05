@@ -18,6 +18,5 @@
 - [ ] No `any` types introduced
 - [ ] No secrets in code
 - [ ] Security checklist applied (if new endpoint or form)
-- [ ] `packages/types` updated (if new or changed data contract)
-- [ ] Storybook story added (if new UI component)
-- [ ] CLAUDE.md section 14 updated if phase completed
+- [ ] `lib/types/blocks.ts` + `lib/schemas/blocks.ts` updated (if new or changed block / data contract)
+- [ ] CLAUDE.md section 11 (Current Project State) updated if a phase completed

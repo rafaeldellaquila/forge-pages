@@ -2,8 +2,9 @@
 
 All secrets are configured in: **Settings → Secrets and variables → Actions**.
 
-Workflows are created in **inactive** state (`workflow_dispatch` only). Real triggers are
-present but commented out in each file — activate them when ready (see bottom).
+Most workflows are created in **inactive** state (`workflow_dispatch` only). Real triggers
+are present but commented out in each file — activate them when ready (see bottom).
+`ci.yml` is already active on push and PR.
 
 ## Required secrets
 
@@ -14,52 +15,35 @@ present but commented out in each file — activate them when ready (see bottom)
 - `SUPABASE_DB_HOST` — Direct database host (for the backup workflow's `pg_dump`)
 - `SUPABASE_DB_PASSWORD` — Database password
 
-### Strapi
-- `STRAPI_URL` — Production Strapi URL (`https://cms.forgecompany.example.com`, the Cloudflare Tunnel hostname)
-- `STRAPI_API_TOKEN` — Read-only API token (created in the Strapi admin after deploy)
-
-### Upstash
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
+### App
+- `NEXT_PUBLIC_SITE_URL` — canonical production URL (e.g. `https://forgecompany.example.com`)
 
 ### Cloudflare Turnstile
-- `TURNSTILE_SECRET_KEY`
-- `NUXT_PUBLIC_TURNSTILE_SITE_KEY`
+- `TURNSTILE_SECRET_KEY` — server-side siteverify secret
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` — public widget site key (baked into the client bundle at build)
 
-### PostHog
-- `NUXT_PUBLIC_POSTHOG_KEY` — public Project API Key (`phc_...`)
-- `NUXT_PUBLIC_POSTHOG_HOST` — region host (`https://us.i.posthog.com` or `.../eu...`)
-
-### Sentry
-- `NUXT_PUBLIC_SENTRY_DSN`
-- `SENTRY_AUTH_TOKEN` — for source-map uploads (prod only)
-
-### Flipt
-- `FLIPT_URL` (`https://flags.forgecompany.example.com`, the Cloudflare Tunnel hostname)
-- `FLIPT_TOKEN`
-
-### Cloudflare (deployment — when the web app is deployed; see docs/adr/0001-hosting-cloudflare.md)
-- `CLOUDFLARE_API_TOKEN` — Workers/Pages deploy token
+### Cloudflare (deployment — see `docs/adr/0001-hosting-cloudflare.md`)
+- `CLOUDFLARE_API_TOKEN` — Workers deploy token (needs *Workers Scripts: Edit*)
 - `CLOUDFLARE_ACCOUNT_ID`
 
-### Claude (for the PR-review workflow)
-- `ANTHROPIC_API_KEY`
+### Claude (for the PR-review workflow — optional)
+- `ANTHROPIC_API_KEY` — only needed if `claude-review.yml` is run
 
-> Hosting note: the web app targets **Cloudflare Workers/Pages** (Nitro `cloudflare`
-> preset). Koyeb and Domainee are no longer used (ADR 0001). Strapi/Flipt/NocoDB run on a
-> **São Paulo VPS behind Cloudflare Tunnel + Access** (ADR 0003) — deployed **manually** on
-> the VM (runbook: `infra/vps/README.md`), not via GitHub Actions, so they need no CI
-> secrets here. The secrets above are what the **web app** consumes to reach them.
+> Hosting note: the app deploys to **Cloudflare Workers** via `@opennextjs/cloudflare`
+> (`opennextjs-cloudflare build` → `.open-next/`, then `wrangler deploy` with
+> `wrangler.jsonc`). Vercel Pro is the documented Plan B (ADR 0001). There are no
+> always-on internal services to host — content lives in Supabase and is edited in
+> Supabase Studio (ADR 0007).
 
 ## Workflows
 
 | File | Purpose | Activate by |
 |---|---|---|
-| `ci.yml` | Biome lint + `tsc` typecheck | uncomment the `push`/`pull_request` trigger |
-| `build.yml` | `nuxt build` on PRs | uncomment the `pull_request` trigger |
+| `ci.yml` | Biome lint + `tsc` typecheck | already active (`push` + `pull_request`) |
+| `build.yml` | `next build` on PRs | uncomment the `pull_request` trigger |
+| `deploy.yml` | OpenNext build + `wrangler deploy` to Cloudflare Workers | uncomment the `push` trigger (needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`) |
 | `backup.yml` | daily `pg_dump` → commit to repo | uncomment the `schedule` cron |
 | `claude-review.yml` | Claude reviews PR vs CLAUDE.md | uncomment the `pull_request` trigger (needs `ANTHROPIC_API_KEY`) |
-| `deploy.yml` | build (`cloudflare-pages` preset) + deploy web to Cloudflare Pages | uncomment the `push` trigger (needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`) |
 
 ### Activating a workflow
 1. Edit `.github/workflows/<workflow>.yml`
@@ -70,7 +54,7 @@ present but commented out in each file — activate them when ready (see bottom)
 ## Branch protection (manual — Settings → Branches → rule for `main`)
 - Require a pull request before merging (1 review)
 - Dismiss stale approvals on new commits
-- Require status checks to pass (add `Lint & Typecheck` once `ci.yml` is active)
+- Require status checks to pass (`Lint & Typecheck` from `ci.yml`)
 - Require branches to be up to date before merging
 - Do not allow bypassing the above
 

@@ -9,26 +9,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-web:
-    name: Build Nuxt
+  build:
+    name: Build Next.js
     runs-on: ubuntu-latest
 
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      STRAPI_URL: ${{ secrets.STRAPI_URL }}
-      STRAPI_API_TOKEN: ${{ secrets.STRAPI_API_TOKEN }}
-      NUXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NUXT_PUBLIC_POSTHOG_KEY }}
-      NUXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NUXT_PUBLIC_POSTHOG_HOST }}
-      NUXT_PUBLIC_SENTRY_DSN: ${{ secrets.NUXT_PUBLIC_SENTRY_DSN }}
-      NUXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NUXT_PUBLIC_TURNSTILE_SITE_KEY }}
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      FLIPT_URL: ${{ secrets.FLIPT_URL }}
-      FLIPT_TOKEN: ${{ secrets.FLIPT_TOKEN }}
 
     steps:
       - name: Checkout
@@ -40,6 +31,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # packages/ui ships raw source (no build step) — consumed via Nuxt transpile
-      - name: Build Nuxt (web)
-        run: pnpm --filter web build
+      - name: Build Next.js
+        run: pnpm run build
