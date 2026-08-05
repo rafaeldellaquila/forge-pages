@@ -1,9 +1,9 @@
 # Como executar o projeto localmente
 
-Guia para subir o forge-pages inteiro na sua máquina: banco de dados (Supabase local),
-CMS (Strapi), o site (Nuxt) e o catálogo de componentes (Storybook). Tudo roda local — não
-precisa de conta em nuvem nem serviço pago. As integrações externas (PostHog, Sentry,
-Turnstile, Upstash, Flipt) ficam desligadas de forma segura quando não há chaves.
+Guia para subir o forge-pages inteiro na sua máquina: banco de dados (Supabase local) e o
+site (Next.js). Tudo roda local — não precisa de conta em nuvem nem serviço pago. A única
+integração externa é o Turnstile (proteção contra robôs), e ela fica desligada de forma
+segura quando não há chaves.
 
 ---
 
@@ -27,35 +27,34 @@ existente nem apaga banco já criado):
 bash .claude/skills/onboard-local/setup.sh
 ```
 
-Ele instala dependências, sobe o Supabase local, aplica migrações + dados de exemplo
-(só na primeira vez), preenche o `.env` da **raiz** (fonte única de verdade — valores já
-existentes nunca são sobrescritos) e gera `apps/cms/.env` + `apps/web/.env` a partir dele
-(`mise run env:sync`). Nunca edite os `.env` dos apps na mão — edite o da raiz e rode o
-sync. Referência completa: `docs/SECRETS.md`.
+Ele instala as dependências, sobe o Supabase local, aplica migrações + dados de exemplo
+(só na primeira vez) e preenche o `.env` da **raiz** — que é a fonte única de verdade
+(valores já existentes nunca são sobrescritos). Não existe `.env` por app: o mise carrega o
+`.env` da raiz e o Next.js também o lê nativamente. Referência completa: `docs/SECRETS.md`.
 
-Depois, suba os serviços:
+Depois, suba o site:
 
 ```bash
-mise run dev:cms    # Strapi  → http://localhost:1337/admin
-mise run dev:web    # Site    → http://localhost:3000 (ou 3001 se a 3000 estiver ocupada)
+mise run dev     # Site → http://localhost:3000
 ```
 
 ---
 
-## 3. Primeiro acesso ao Strapi (CMS)
+## 3. Onde fica o conteúdo das páginas
 
-Na primeira vez, abra `http://localhost:1337/admin`:
+Não existe CMS. O conteúdo de cada cliente (os **blocos**: textos, seções, botões) é uma
+lista em formato **JSON** guardada na coluna `blocks` da tabela `landing_pages`, no
+Supabase.
 
-1. Crie o usuário administrador.
-2. **Settings → API Tokens → Create** um token do tipo **Read-only**, cole no `.env` da
-   **raiz** na variável `STRAPI_API_TOKEN` e rode `mise run env:sync`.
-3. Reinicie o `dev:web` para ele ler o token.
+Para editar:
 
-Para carregar as 3 landing pages de exemplo (já publicadas):
+1. Abra o **Supabase Studio**: `http://127.0.0.1:54323`
+2. Vá em **Table Editor → `landing_pages`**
+3. Escolha a linha do cliente, abra a célula `blocks` e edite o JSON
+4. Recarregue a página no navegador
 
-```bash
-cd apps/cms && node scripts/seed-content.cjs
-```
+Se o JSON estiver fora do formato esperado, a página falha com uma mensagem clara em vez de
+abrir quebrada silenciosamente.
 
 ---
 
@@ -66,12 +65,13 @@ subdomínios `*.localhost` (o navegador resolve sozinho, sem editar arquivos do 
 
 | Endereço | Cliente |
 | --- | --- |
+| http://forgecompany.localhost:3000 | Forge Company |
 | http://forge-motos.localhost:3000 | Forge Motos (motos) |
 | http://clinica.localhost:3000 | Clínica Exemplo (saúde) |
 | http://advocacia.localhost:3000 | Advocacia Prime (jurídico) |
 | http://desconhecido.localhost:3000 | **404** (domínio sem cliente) |
 
-Cada um mostra cores, fonte e conteúdo próprios. Use `:3001` se a porta 3000 estava ocupada.
+Cada um mostra cores, fonte e conteúdo próprios.
 
 ---
 
@@ -79,36 +79,34 @@ Cada um mostra cores, fonte e conteúdo próprios. Use `:3001` se a porta 3000 e
 
 | Serviço | Endereço |
 | --- | --- |
-| Site (Nuxt) | http://localhost:3000 |
-| Admin do CMS (Strapi) | http://localhost:1337/admin |
+| Site | http://localhost:3000 |
 | Painel do banco (Supabase Studio) | http://127.0.0.1:54323 |
 | E-mails de teste (Mailpit) | http://127.0.0.1:54324 |
-| Storybook (componentes) | http://localhost:6006 (`mise run storybook`) |
+| Prévia no runtime da Cloudflare | http://localhost:8787 (`mise run preview`) |
 
 ---
 
 ## 6. Comandos do dia a dia
 
 ```bash
-mise run dev          # sobe Nuxt + Strapi juntos
+mise run dev          # sobe o site (Next.js)
+mise run preview      # gera a versão de produção e roda no runtime da Cloudflare
 mise run lint         # checagem de código (Biome)
 mise run typecheck    # checagem de tipos (TypeScript)
-mise run storybook    # catálogo de componentes
 ```
 
 ---
 
 ## 7. Problemas comuns
 
-- **Erro `supabaseUrl is required`** → o servidor do site subiu antes das variáveis.
-  **Reinicie o `dev:web`** sempre que mudar variáveis (`.env` da raiz + `mise run env:sync`)
-  — ele lê as variáveis só ao iniciar.
+- **Erro de variável faltando (ex.: `supabaseUrl is required`)** → o site subiu antes das
+  variáveis existirem. **Reinicie o `mise run dev`** sempre que mudar o `.env` da raiz — as
+  variáveis são lidas só ao iniciar.
 - **Página dá 404** → não existe cliente para aquele domínio no Supabase, ou não está
-  publicado. Rode `pnpm exec supabase db reset --workdir infra`.
-- **Página abre mas sem blocos** → o registro no Strapi não tem o mesmo `domain` ou não
-  está publicado.
-- **Strapi não sobe** → confira as variáveis `DATABASE_*` no `.env` da raiz (e rode
-  `mise run env:sync`) e se o Supabase está rodando
-  (`pnpm exec supabase status --workdir infra`).
+  publicado (`status = 'published'`). Rode `pnpm exec supabase db reset --workdir infra`.
+- **Página abre com as cores certas mas sem conteúdo** → a coluna `blocks` daquele cliente
+  está vazia (`[]`). Preencha no Supabase Studio (item 3).
+- **Turnstile sempre falha** → a chave do site e a secreta precisam ser do mesmo widget; o
+  par de teste `1x…` sempre passa.
 
 > Detalhes técnicos completos (em inglês): `docs/LOCAL_DEVELOPMENT.md`.

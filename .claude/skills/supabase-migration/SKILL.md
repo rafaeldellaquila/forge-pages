@@ -10,7 +10,8 @@ Before starting, read this file in full.
 1. **Migrations are irreversible** — Supabase applies them forward-only. There is no rollback. Think carefully before writing.
 2. **Always ask before running** — `mise run db:migrate` asks for confirmation. Never bypass it.
 3. **New tables always need RLS** — no table is ever created without a Row Level Security policy in the same migration or the next one.
-4. **Always check packages/types** — if the migration adds or renames columns, the TypeScript types must be updated too.
+4. **RLS policies are not enough** — Supabase does not auto-grant DML privileges on new tables. Add explicit `grant`s (least privilege) alongside the policies, or access fails with `permission denied` despite a matching policy.
+5. **Always check `lib/types/blocks.ts`** — if the migration adds or renames columns that the app reads, the TypeScript types (and the Zod schema in `lib/schemas/blocks.ts`, for anything inside `landing_pages.blocks`) must be updated too.
 
 ---
 
@@ -53,7 +54,8 @@ Example: `mise run gen:migration add_locale_to_landing_pages`
 
 ## RLS policy patterns for this project
 
-This project has 3 access roles: `anon` (visitors), `authenticated` (future), `service_role` (Edge Functions / server).
+This project has 3 access roles: `anon` (visitors, via the publishable key),
+`authenticated` (future), `service_role` (server-side code, via the secret key).
 
 ### Public read, service_role write (e.g. landing_pages)
 ```sql
@@ -87,7 +89,7 @@ create policy "service_role_all_<table>"
   with check (true);
 ```
 
-### Service_role only (e.g. clients, webhook_retries)
+### Service_role only (e.g. clients)
 ```sql
 alter table public.<table> enable row level security;
 
@@ -168,25 +170,31 @@ alter table public.<table>
 ## After writing the migration
 
 1. Read the SQL again — check for typos in column names, missing semicolons
-2. Run `mise run db:migrate` (will ask for confirmation)
-3. Verify in Supabase dashboard: Table Editor shows the new structure
-4. If new table: verify RLS is enabled (Authentication → Policies)
-5. If new/changed columns: update `packages/types/src/index.ts` or the relevant block type
-6. Run `mise run typecheck` — must pass
+2. Test it locally first (see below)
+3. Run `mise run db:migrate` (will ask for confirmation)
+4. Verify in Supabase Studio: Table Editor shows the new structure
+5. If new table: verify RLS is enabled (Authentication → Policies) **and** that the grants
+   are in place
+6. If new/changed columns the app reads: update `lib/types/blocks.ts` (and
+   `lib/schemas/blocks.ts` for anything inside `landing_pages.blocks`)
+7. Run `mise run typecheck` — must pass
 
 ---
 
 ## Testing the migration locally
 
+Config lives in `infra/supabase/config.toml`, so every CLI command needs `--workdir infra`.
+
 ```bash
-# Start local Supabase (if using local dev)
-supabase start
+# Start the local stack
+pnpm exec supabase start --workdir infra
 
-# Apply migrations locally first
-supabase db reset
+# Apply all migrations + seed from scratch (destructive: local data only)
+pnpm exec supabase db reset --workdir infra
 
-# Test with a query in Supabase SQL Editor or:
-supabase db execute "select * from <table> limit 1;"
+# Inspect the result — Studio SQL editor (http://127.0.0.1:54323) or psql:
+docker exec -i "$(docker ps --format '{{.Names}}' | grep -m1 supabase_db)" \
+  psql -U postgres -d postgres -c "select * from public.<table> limit 1;"
 ```
 
 ---
@@ -197,5 +205,7 @@ supabase db execute "select * from <table> limit 1;"
 - Do not use PostgreSQL `enum` types — use `text` with `check` constraints
 - Do not drop columns without verifying no application code references them
 - Do not alter column types on tables with existing production data
-- Do not forget RLS on new tables
+- Do not forget RLS **and grants** on new tables
+- Do not add a DB-level JSON schema constraint to `landing_pages.blocks` — that shape is
+  validated in the app by `lib/schemas/blocks.ts` so the errors stay readable
 - Do not commit migrations without running `mise run typecheck`

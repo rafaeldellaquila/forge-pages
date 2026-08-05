@@ -4,99 +4,67 @@ How env vars flow through the project, and where each value lives per environmen
 
 ## Model
 
-- **Root `.env`** (gitignored) is the **single source of truth** for local values.
-  Edit it, then run `mise run env:sync` — this regenerates `apps/web/.env` and
-  `apps/cms/.env` (both carry a `GENERATED` header; never edit them by hand).
-- **mise auto-loads the root `.env`** (`[env] _.file` in `.mise.toml`) for every task
-  and the activated shell, so CLI tooling (`supabase`, `wrangler`, backup tasks) sees
-  the same values.
+- **Root `.env`** (gitignored) is the **single source of truth** for local values. There is
+  no per-app fan-out: **mise auto-loads it** (`[env] _.file` in `.mise.toml`) for every task
+  and the activated shell, and **Next.js reads it natively** from the project root.
+- `NEXT_PUBLIC_*` vars are **inlined into the client bundle at build time**. Never put a
+  secret behind that prefix, and remember a changed value needs a rebuild, not just a
+  restart.
 - **Local = dev, cloud = prod.** The root `.env` holds *dev* values only, plus a
-  `CLOUD OPS` section with tooling credentials. Production values never live in local
-  files — they are injected where they run (table below).
-- Restart dev servers after a sync — Nuxt bakes `runtimeConfig` at startup.
+  `CLOUD OPS` section with tooling credentials for this machine. Production values never
+  live in local files — they are injected where they run (table below).
+- Restart the dev server after editing `.env` — the values are read at process start.
 
 Production injection points:
 
 | Point | What it feeds |
 |---|---|
-| **GitHub Actions secrets** | CI, builds, deploy, backup workflows (`.github/SETUP.md`) |
-| **Cloudflare Pages/Workers env** | Nuxt server runtime in prod |
-| **Supabase Edge Function secrets** | `handle-lead-webhook` (`supabase secrets set --workdir infra`) |
-| **Supabase Vault** | `project_url` / `secret_key` used by pg_net retry cron |
-| **Strapi host dashboard** | CMS in prod (host not chosen yet — deferred) |
+| **GitHub Actions secrets** | CI, build, deploy, backup workflows (`.github/SETUP.md`) |
+| **Cloudflare Workers env / secrets** | the app's server runtime in prod |
+| **Supabase Vault** | DB-side secrets, if a migration ever needs one |
 
 ## Matrix
 
-Consumers: `web` = Nuxt · `cms` = Strapi · `edge` = Supabase Edge Function ·
+Consumers: `app` = the Next.js app (server unless marked *public*) ·
 `ci` = GitHub Actions · `ops` = local CLI/tooling only.
 
 ### Supabase
 
 | Variable | Consumer | Dev (root `.env`) | Prod |
 |---|---|---|---|
-| `SUPABASE_URL` | web | local stack (`http://127.0.0.1:54321`) | GH secret + CF Pages env |
-| `SUPABASE_PUBLISHABLE_KEY` | web (public) | from `supabase status` | GH secret + CF Pages env |
-| `SUPABASE_SECRET_KEY` | web (server) | from `supabase status` | GH secret + CF Pages env |
-| `SUPABASE_PROJECT_REF` | ops | cloud project ref | — (ops only) |
-| `SUPABASE_DB_HOST` / `SUPABASE_DB_PASSWORD` | ops, ci (backup) | cloud DB (ops) | GH secret (backup.yml) |
+| `SUPABASE_URL` | app | local stack (`http://127.0.0.1:54321`) | GH secret + CF Workers env |
+| `SUPABASE_PUBLISHABLE_KEY` | app | from `supabase status` | GH secret + CF Workers env |
+| `SUPABASE_SECRET_KEY` | app (server only) | from `supabase status` | GH secret + CF Workers env |
+| `SUPABASE_ACCESS_TOKEN` | ops | personal access token (headless CLI + Management API auth) | — (ops only) |
+| `SUPABASE_PROJECT_REF` | ops | cloud project ref (`ofpnglnnzpowlzsyfbit`) | — (ops only) |
+| `SUPABASE_DB_HOST` / `SUPABASE_DB_PASSWORD` | ops, ci (backup) | cloud DB (ops) | GH secret (`backup.yml`) |
 
-### Strapi
-
-| Variable | Consumer | Dev | Prod |
-|---|---|---|---|
-| `STRAPI_URL` | web | `http://localhost:1337` | GH secret + CF Pages env |
-| `STRAPI_API_TOKEN` | web | local read-only token | GH secret + CF Pages env |
-| `APP_KEYS`, `API_TOKEN_SALT`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `ENCRYPTION_KEY` | cms | generated per machine (`openssl rand -base64 16`) | Strapi host dashboard |
-| `DATABASE_*` | cms | local Supabase PG (`127.0.0.1:54322`) | `DATABASE_URL` on Strapi host |
-| `DATABASE_SCHEMA` | cms | `strapi` — isolates Strapi's own tables from the `public` schema Supabase migrations own, so `supabase db reset` can't wipe CMS data/admin accounts | Strapi host dashboard (same isolation applies) |
-| `SUPABASE_S3_*` | cms | empty (local disk uploads) | Strapi host dashboard |
-| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `RESEND_NOTIFICATION_EMAIL` | cms (admin panel email, via `@strapi/provider-email-nodemailer` → `smtp.resend.com`) + edge | same Resend account/keys as lead notifications | Strapi host dashboard + Supabase function secrets |
-
-### Integrations
+### App
 
 | Variable | Consumer | Dev | Prod |
 |---|---|---|---|
-| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | web (server) | dev Redis or empty (skip) | GH secret + CF Pages env |
-| `TURNSTILE_SECRET_KEY` | web (server) | test key `1x0…AA` or empty | GH secret + CF Pages env |
-| `NUXT_PUBLIC_TURNSTILE_SITE_KEY` | web (public) | test key `1x…AA` or empty | GH secret (baked at build) |
-| `NUXT_PUBLIC_POSTHOG_KEY` / `_HOST` | web (public) | empty (analytics off) | GH secret (baked at build) |
-| `NUXT_PUBLIC_SENTRY_DSN` | web | empty (Sentry no-op) | GH secret (baked at build) |
-| `SENTRY_DSN` | cms | empty | Strapi host dashboard |
-| `SENTRY_AUTH_TOKEN` | ci (source maps) | — | GH secret |
-| `FLIPT_URL` / `FLIPT_TOKEN` | web (server) | empty (fails open) | GH secret + CF Pages env |
-| `NUXT_PUBLIC_SITE_URL` | web, cms (CORS, Preview `CLIENT_URL`) | empty | GH secret + CF Pages env + Strapi host dashboard |
-| `PREVIEW_SECRET` | web, cms | generated locally (`openssl rand -hex 32`) | GH secret + CF Pages env + Strapi host dashboard (same value both sides) |
-
-### Lead notifications (Edge Function)
-
-| Variable | Consumer | Dev | Prod |
-|---|---|---|---|
-| `RESEND_API_KEY` | edge | local `functions serve` env | Supabase function secrets |
-| `RESEND_FROM_EMAIL` | edge | — | verified sender, e.g. `leads@send.forgecompany.example.com` |
-| `RESEND_NOTIFICATION_EMAIL` | edge | — | `contato@forgecompany.example.com` |
-| `WHATSAPP_ACCESS_TOKEN` / `_PHONE_NUMBER_ID` / `_NOTIFICATION_NUMBER` | edge | empty (channel skipped) | Supabase function secrets |
-| `project_url` / `secret_key` | pg_net retry cron | local Vault (seeded) | Supabase Vault |
+| `NEXT_PUBLIC_SITE_URL` | app (public) | empty | GH secret (baked at build) + CF Workers env |
+| `TURNSTILE_SECRET_KEY` | app (server) | test secret `1x0000000000000000000000000000000AA`, or empty to skip | GH secret + CF Workers env |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | app (public) | test site key `1x00000000000000000000AA`, or empty to skip | GH secret (baked at build) |
 
 ### Ops / CI only
 
 | Variable | Consumer | Dev | Prod |
 |---|---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | ops | personal access token (headless CLI + Management API auth) | — (ops only) |
-| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | ops, ci (deploy) | ops | GH secret |
-| `ANTHROPIC_API_KEY` | ci (PR review) | — | GH secret |
-| `GITHUB_PERSONAL_ACCESS_TOKEN` | ops | fine-grained PAT | — |
-| `STRAPI_MCP_ADMIN_TOKEN` | ops | Strapi admin token, empty → strapi-mcp unauthenticated | — (ops only) |
+| `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` | ops, ci (deploy) | ops (`wrangler`) | GH secret |
+| `ANTHROPIC_API_KEY` | ci (PR review, optional) | — | GH secret |
+| `GITHUB_PERSONAL_ACCESS_TOKEN` | ops (github MCP) | fine-grained PAT | — |
 
 ## Rules
 
 - Never commit `.env` files or log secret values.
-- New variable? Add it to: root `.env.example`, the `env:sync` allowlist in `.mise.toml`
-  (if an app consumes it), this matrix, and `.github/SETUP.md` (if CI needs it).
-- Rotation: prod keys are replaced by updating the injection point (GH secret /
-  dashboard) — local `.env` only ever holds dev values.
-- The `OLD_*` section in the root `.env` holds personal-account values pending
-  revocation during the Forge Company migration (see `docs/GO_LIVE.md`) — delete the
-  section once revoked.
-- The `PROD_*` section in the root `.env` holds the new cloud (prod) Supabase
-  URL/keys, staged for injection as GitHub secrets in migration Fase C. Nothing local
-  reads them (`local = dev`); they are not synced to the app `.env` files.
+- New variable? Add it to: root `.env.example`, this matrix, and `.github/SETUP.md`
+  (if CI needs it).
+- Rotation: prod keys are replaced by updating the injection point (GH secret / Cloudflare
+  dashboard) — the local `.env` only ever holds dev values.
+- Keep root `.env` values **bare**: no surrounding quotes, no inline `#` comments — mise's
+  dotenv parser captures them literally.
+- Analytics needs no env var: **Cloudflare Web Analytics** is enabled per hostname in the
+  Cloudflare dashboard.
+- The root `.env` also carries a `PROD_*` section (cloud Supabase URL/keys staged for
+  GitHub Actions secrets). Nothing in the app reads that prefix — see `docs/GO_LIVE.md`.

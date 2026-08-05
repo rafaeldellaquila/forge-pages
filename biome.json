@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -42,55 +42,19 @@
       "semicolons": "asNeeded"
     }
   },
-  "overrides": [
-    {
-      "includes": ["infra/supabase/functions/**"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noConsole": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/web/server/**"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noConsole": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["**/*.vue"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedVariables": "off",
-            "noUnusedImports": "off"
-          },
-          "style": {
-            "useVueMultiWordComponentNames": "off"
-          }
-        }
-      }
-    }
-  ],
   "files": {
     "includes": [
       "**",
       "!**/node_modules",
       "!infra/supabase/.temp",
       "!**/dist",
-      "!**/.nuxt",
-      "!**/.output",
       "!**/build",
-      "!**/.strapi",
-      "!**/.strapi-updater.json",
-      "!**/types/generated",
-      "!**/storybook-static",
+      "!**/.next",
+      "!**/.open-next",
+      "!**/out",
+      "!**/.wrangler",
+      "!**/next-env.d.ts",
+      "!supabase",
       "!.claude"
     ]
   }

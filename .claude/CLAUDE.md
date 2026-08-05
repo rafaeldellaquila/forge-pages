@@ -4,509 +4,211 @@
 > Read it in full before any task. Never contradict decisions made here.
 > When in doubt, ask before acting.
 
----
-
 ## 1. Product Overview
 
-**forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Nuxt 4 app serves all clients — the tenant is resolved from the `Host` header on every request. Content is managed via Strapi 5 CMS using Dynamic Zone (block-based composition). Leads captured on landing pages are stored in Supabase, notified via Resend (email) and WhatsApp Cloud API, and managed via NocoDB by non-technical partners.
+**forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Next.js app serves all clients — the tenant is resolved from the `Host` header on every request. Content (blocks, copy, colors) lives as a typed JSON array in Supabase, edited directly via Supabase Studio (no CMS). Leads captured on landing pages are inserted straight into Supabase; the founder views them in Supabase Studio.
 
-**GitHub org**: `forgecompany-tech` (renamed from `forge-co-tech` 2026-07-20)
+**GitHub org**: `forgecompany-tech`
 **Repository**: `forgecompany-tech/forge-pages`
 **Language standard**: All code, comments, variables, functions, filenames, database columns, API fields, and git messages in **English**. User-facing content (landing page text) in Portuguese.
 
----
+**MVP rewrite (2026-08-04, ADR-0007)**: this project previously ran Nuxt 4 + Vue + Strapi 5 + NocoDB + PostHog + Sentry + Flipt + a VPS — dropped for a leaner MVP (zero paying clients at the time; cost/complexity had stalled progress). Historical learnings from that stack: `docs/HISTORY.md`. Full rationale: `docs/adr/0007-drop-strapi-nocodb-observability-vps.md` and `.claude/docs/MVP_REWRITE_CONTEXT.md`.
 
 ## 2. Full Stack
 
-| Layer                  | Tool                                       | Notes                              |
-| ---------------------- | ------------------------------------------ | ---------------------------------- |
-| Frontend               | Nuxt 4 (SSR + ISR)                         | Multi-tenant by domain             |
-| Styling                | Tailwind CSS v4                            | CSS-native, no config file         |
-| CMS                    | Strapi 5                                   | Dynamic Zone for blocks            |
-| Database               | Supabase (PostgreSQL)                      | + Storage + Edge Functions + Auth  |
-| Hosting (web)          | Cloudflare Workers/Pages                   | Free, commercial-OK, Nitro `cloudflare` preset (see ADR 0001) |
-| Custom domains / SSL   | Cloudflare (for SaaS)                      | Free per-domain SSL; replaces Domainee |
-| Hosting (Strapi/Flipt/NocoDB) | AWS Lightsail São Paulo (2 GB) + Cloudflare Tunnel + Access | Docker Compose on one VPS (`infra/vps/`), no public ports; see ADR 0003 |
-| Lead management        | NocoDB                                     | Pointed at Supabase Postgres       |
-| Analytics              | PostHog                                    | Cloud free tier                    |
-| Error tracking         | Sentry                                     | Free tier, 5k errors/month         |
-| Feature flags          | Flipt                                      | Self-hosted on the VPS; declarative flags in `infra/flipt/` |
-| Rate limiting          | Upstash Redis                              | Shared instance, free tier         |
-| Bot protection         | Cloudflare Turnstile                       | Invisible CAPTCHA, free            |
-| Email notifications    | Resend                                     | 3k emails/month free               |
-| WhatsApp notifications | WhatsApp Cloud API                         | 1k conversations/month free        |
-| Backup                 | GitHub Actions + pg_dump                   | Daily cron, commit to private repo |
-| Monitoring             | UptimeRobot                                | Free, 5-min checks                 |
-| Package manager        | pnpm                                       | Workspaces monorepo                |
-| Runtime manager        | mise-en-place                              | Node 24 LTS fixed                  |
-| Linting + formatting   | Biome                                      | Replaces ESLint + Prettier         |
-| Component catalog      | Storybook                                  | In packages/ui                     |
-| Versioning             | Changesets                                 | Monorepo changelog                 |
-| Git hooks              | Husky + lint-staged                        | Biome on staged files only         |
-| TypeScript             | strict mode                                | No `any` allowed                   |
-| Component framework    | Vue 3 (Composition API + `<script setup>`) |                                    |
+| Layer                | Tool                          | Notes                                                    |
+| -------------------- | ------------------------------ | --------------------------------------------------------- |
+| Frontend             | Next.js 16 (App Router)        | Multi-tenant by domain, Edge Middleware, Turbopack        |
+| Component framework  | React 19 (Server + Client Components) |                                                     |
+| Styling              | Tailwind CSS v4                | CSS-native, no config file                                |
+| Validation           | Zod 4                          | `lib/schemas/blocks.ts` — validates JSON blocks at fetch  |
+| Database             | Supabase (PostgreSQL)          | Blocks stored as `jsonb`, content edited via Studio        |
+| Hosting (web)        | Cloudflare Workers             | `@opennextjs/cloudflare`; Vercel Pro is the documented Plan B (see ADR-0001) |
+| Custom domains / SSL | Cloudflare for SaaS            | Free per-domain SSL                                        |
+| Analytics            | Cloudflare Web Analytics       | Free, zero-config, no cookie banner                        |
+| Bot protection       | Cloudflare Turnstile           | Invisible CAPTCHA, free                                     |
+| Package manager      | pnpm                           | Single app, no workspace                                    |
+| Runtime manager      | mise-en-place                  | Node 24 LTS fixed                                           |
+| Linting + formatting | Biome                          | Replaces ESLint + Prettier                                  |
+| Git hooks            | Husky + lint-staged            | Biome on staged files only                                  |
+| TypeScript           | strict mode                    | No `any` allowed                                            |
+
+**Deferred (not in the MVP, not discarded — see ADR-0007)**: error tracking (Sentry), feature flags (Flipt), rate limiting (Upstash), lead-notification channels (Resend email, WhatsApp Cloud API), a non-technical admin UI. Re-add only when the product's traffic/scale actually needs them.
 
 **Decided and closed — do not suggest alternatives for:**
 
-- Next.js (decided: Nuxt 4)
 - Firebase (decided: Supabase)
-- Directus / Nuxt Content (decided: Strapi 5)
+- Strapi / Directus / Nuxt Content (decided 2026-08-04: Supabase JSONB — see ADR-0007)
+- Vue / Nuxt (decided 2026-08-04: React / Next.js — see ADR-0007)
+- NocoDB (decided 2026-08-04: Supabase Studio — see ADR-0007)
+- A dedicated VPS for always-on services (decided 2026-08-04: none needed — see ADR-0007)
 - ESLint / Prettier (decided: Biome)
 - Yarn / npm (decided: pnpm)
-- Koyeb / Domainee (decided 2026-07-09: Cloudflare Workers/Pages for web + Cloudflare-for-SaaS SSL — Koyeb dropped its free tier; see ADR 0001.)
-- Always-on services hosting (decided 2026-07-22: AWS Lightsail São Paulo VPS + Cloudflare Tunnel + Access, Docker Compose in `infra/vps/`. Oracle Always Free rejected — halved allocation + `sa-saopaulo-1` capacity roulette; Fly.io/Cloudflare Containers rejected — second edge/compute platform alongside Cloudflare. See ADR 0003.)
+- Koyeb / Domainee (decided 2026-07-09: Cloudflare Workers + Cloudflare-for-SaaS SSL — see ADR-0001)
 
----
-
-## 3. Monorepo Structure
+## 3. Repo Structure
 
 ```
 forge-pages/
-├── apps/
-│   ├── web/                    # Nuxt 4 — multi-tenant frontend
-│   └── cms/                    # Strapi 5 — content management
-├── packages/
-│   ├── ui/                     # Vue components + Storybook
-│   ├── types/                  # Shared TypeScript interfaces
-│   └── config/                 # Shared Biome, Tailwind, Changesets config
-├── infra/
-│   ├── supabase/
-│   │   ├── migrations/         # SQL files (timestamp prefix)
-│   │   ├── seed/               # Dev seed data
-│   │   └── functions/          # Supabase Edge Functions (Deno)
-│   └── flipt/                  # feature-flags.yaml
-├── .github/
-│   ├── workflows/              # CI (workflow_dispatch only until activated)
-│   └── PULL_REQUEST_TEMPLATE.md
-├── docs/
-│   └── prompts/                # Phase prompts for Claude Code sessions
-├── .mise.toml                  # Node 24 LTS, pnpm version, task runners
-├── .husky/                     # Git hooks
-├── biome.json                  # Root Biome config (shared)
-├── pnpm-workspace.yaml
-├── .changeset/
-│   └── config.json
-├── .env.example                # Keys only, no values
-├── CLAUDE.md                   # This file
-└── AGENTS.md                   # MCP and agent configuration
+├── app/                     # Next.js 16 App Router (layout.tsx, page.tsx, api/leads/)
+├── components/blocks/       # React block components (Hero, Pricing, CtaForm, ...)
+├── lib/                     # types/blocks.ts, schemas/blocks.ts, supabase.ts, background.ts
+├── proxy.ts                 # Edge proxy (Next 16 name for middleware) — Host header → tenant
+├── open-next.config.ts / wrangler.jsonc   # Cloudflare Workers config (OpenNext adapter)
+├── infra/supabase/          # migrations/, seed/
+├── docs/                    # adr/, HISTORY.md (archived Nuxt/Strapi learnings)
+├── .github/workflows/       # CI (workflow_dispatch only until activated)
+├── .mise.toml, .husky/, biome.json
+├── .env.example             # Keys only, no values
+└── CLAUDE.md, AGENTS.md
 ```
-
----
 
 ## 4. Architecture: Multi-Tenant by Domain
 
-Every HTTP request resolves the tenant from the `Host` header:
-
 ```
-Visitor → Domainee (SSL) → Koyeb (Nuxt SSR)
-  → server/middleware/tenant.ts
+Visitor → Cloudflare (SSL) → Workers (Next.js, OpenNext)
+  → proxy.ts
     → query Supabase: SELECT * FROM landing_pages WHERE domain = host
     → if not found: return 404
-    → inject tenant context into request
-  → render page from blocks (or custom component if render_mode = 'custom')
+    → inject tenant context (x-tenant-host header)
+  → app/page.tsx (Server Component) → render blocks array
 ```
 
-**ISR cache**: Pages are cached for 1 hour and revalidated in background.
-
-```ts
-// nuxt.config.ts
-routeRules: { '/**': { isr: 3600 } }
-```
-
-Strapi webhook triggers Nuxt cache invalidation on content publish.
-
-**render_mode**:
-
-- `blocks` — page composed from Dynamic Zone blocks (default)
-- `custom` — dedicated Vue component for fully custom layouts (rare)
-
----
+**Caching**: ISR is emulated by OpenNext via stale-while-revalidate (not native to Workers). The Next.js ISR cache key does **not** include the `Host` header — mitigate with explicit per-tenant revalidation rather than a bare `revalidate: N` on the root page (see `.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1).
 
 ## 5. Database Schema (Supabase / PostgreSQL)
 
 ### clients
-
 ```sql
-id              uuid primary key default gen_random_uuid()
-name            text not null
-email           text not null
-whatsapp        text not null
-created_at      timestamptz default now()
+id, name, email, whatsapp, created_at
 ```
 
 ### landing_pages
-
 ```sql
-id              uuid primary key default gen_random_uuid()
-client_id       uuid references clients(id) on delete cascade
-domain          text not null unique
-render_mode     text not null default 'blocks' check (render_mode in ('blocks','custom'))
-status          text not null default 'draft' check (status in ('draft','published','archived'))
-seo_title       text
-seo_description text
-seo_og_image    text
-canonical_url   text
-primary_color   text
-secondary_color text
-font_family     text
-secondary_font_family text
-background_type text check (background_type in ('transparent','solid','gradient','image','fine-line-texture','glass'))
-background_color_token text check (background_color_token in ('primary','secondary','custom'))
-background_color_custom text
-background_gradient_to_token text check (background_gradient_to_token in ('primary','secondary','custom'))
-background_gradient_to_custom text
-background_image_url text
-divider_glyph   text
-created_at      timestamptz default now()
-updated_at      timestamptz default now()
+id, client_id, domain (unique), render_mode ('blocks'|'custom', default 'blocks'), status ('draft'|'published'|'archived')
+seo_title, seo_description, seo_og_image, canonical_url
+primary_color, secondary_color, font_family, secondary_font_family
+background_type, background_color_token, background_color_custom,
+background_gradient_to_token, background_gradient_to_custom, background_image_url,
+divider_glyph
+blocks jsonb not null default '[]'   -- typed block array, validated with Zod on fetch
+created_at, updated_at
 ```
 
-`background_*`/`divider_glyph` are the page-level layer of the tenant background system
-(ADR-0005) — null `background_type` falls back to the plain default. Per-block overrides
-live in Strapi's `shared.background` component instead (see §6).
+`background_*`/`divider_glyph` are the page-level tenant background layer (ADR-0005); per-block overrides live inline in each block's JSON (see §6).
 
 ### leads
-
 ```sql
-id              uuid primary key default gen_random_uuid()
-landing_page_id uuid references landing_pages(id) on delete cascade
-name            text not null
-whatsapp        text not null
-email           text
-message         text
-intent          text
-utm_source      text
-utm_medium      text
-utm_campaign    text
-status          text not null default 'new' check (status in ('new','contacted','converted','lost'))
-created_at      timestamptz default now()
+id, landing_page_id, name, whatsapp, email, message, intent,
+utm_source, utm_medium, utm_campaign,
+status ('new'|'contacted'|'converted'|'lost'), created_at
 ```
 
-### webhook_retries
+**RLS**: All tables must have Row Level Security enabled. **API keys**: publishable key (`sb_publishable_...`, `anon` role) for client-side reads, secret key (`sb_secret_...`, `service_role`, bypasses RLS) for server-side code only. Legacy `anon`/`service_role` JWT keys are disabled. The publishable key never has write access to `landing_pages` or `clients`. Secret keys are not JWTs — send on the `apikey` header, never `Authorization: Bearer`.
 
-```sql
-id              uuid primary key default gen_random_uuid()
-lead_id         uuid references leads(id) on delete cascade
-channel         text not null check (channel in ('email','whatsapp'))
-attempts        int not null default 0
-last_error      text
-next_retry_at   timestamptz
-resolved_at     timestamptz
-created_at      timestamptz default now()
-```
+## 6. Block Types (JSON, Zod-validated)
 
-**RLS**: All tables must have Row Level Security enabled. **API keys**: this project uses the new Supabase key model only — publishable key (`sb_publishable_...`, maps to the `anon` DB role) for client-side reads, secret key (`sb_secret_...`, maps to `service_role`, bypasses RLS) for Edge Functions and server-side code. Legacy `anon`/`service_role` JWT keys are disabled. The publishable key never has write access to `landing_pages` or `clients`. Secret keys are not JWTs: send them on the `apikey` header, never `Authorization: Bearer`; in SQL (`pg_net`/webhooks) read them from Vault, never hardcode.
+Blocks live in `landing_pages.blocks` (JSONB array). Each block type has a TypeScript interface in `lib/types/blocks.ts` and a matching Zod schema in `lib/schemas/blocks.ts`. An unrecognized `variant` falls back to `default` (ADR-0002); a failed schema on the whole page fails loudly in the Server Component rather than rendering silently broken.
 
----
+| Block `type`        | Key fields                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| `header`             | variant (`default`\|`centered`), background, logo, menuLinks[], ctaLabel, ctaWhatsapp, ctaMessage    |
+| `hero`               | variant (`default`\|`centered`), background, badgeText, headline, subheadline, ctaPrimaryLabel/Link, ctaSecondaryLabel/Link, image, imageAlt |
+| `trust-icons`        | items[]: { icon, text }                                                                                |
+| `stats`              | items[]: { number, label }                                                                             |
+| `value-proposition`  | headline, text, cards[]: { icon, title, description }                                                  |
+| `services`           | headline, tabs[]: { label, title, text, ctaLabel, ctaLink, image }                                     |
+| `differentials`      | background, headline, text, items[]: { icon, tag, text }                                               |
+| `testimonials`       | headline, items[]: { name, role, photo, text, rating }                                                 |
+| `cta-form`           | headline, subheadline, selectOptions[]: { label, value }, ctaLabel, whatsappNumber, whatsappMessage    |
+| `footer`             | logo, description, links[], phones[], schedule, socialLinks[], copyright, privacyLink                  |
+| `pricing`            | headline, subheadline, plans[], note                                                                    |
 
-## 6. Strapi Block Types (Dynamic Zone)
-
-All blocks live in the `blocks` Dynamic Zone of the `LandingPage` content type.
-Each block must have a corresponding TypeScript interface in `packages/types/src/blocks/`.
-
-| Block UID                  | Key fields                                                                                                                        |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `blocks.header`            | variant (`default`\|`centered`), background, logo, menu_links[], cta_label, cta_whatsapp, cta_message                            |
-| `blocks.hero`              | variant (`default`\|`centered`), background, badge_text, headline, subheadline, cta_primary_label, cta_primary_link, cta_secondary_label, cta_secondary_link, image, image_alt |
-| `blocks.trust-icons`       | items[]: { icon, text }                                                                                                           |
-| `blocks.stats`             | items[]: { number, label }                                                                                                        |
-| `blocks.value-proposition` | headline, text, cards[]: { icon, title, description }                                                                             |
-| `blocks.services`          | headline, tabs[]: { label, title, text, cta_label, cta_link, image }                                                              |
-| `blocks.differentials`     | background, headline, text, items[]: { icon, tag, text }                                                                          |
-| `blocks.testimonials`      | headline, items[]: { name, role, photo, text, rating }                                                                            |
-| `blocks.cta-form`          | headline, subheadline, select_options[]: { label, value }, cta_label, whatsapp_number, whatsapp_message                           |
-| `blocks.footer`            | logo, description, links[], phones[], schedule, social_links[], copyright, privacy_link                                           |
-| `blocks.pricing`           | headline, subheadline, plans[], note                                                                                              |
-
-**`shared.background`** (ADR-0005): `type` (`transparent`\|`solid`\|`gradient`\|`image`\|`fine-line-texture`\|`glass`, default `transparent`), `colorToken` (`primary`\|`secondary`\|`custom`), `customColor`/`gradientToCustom` (`plugin::color-picker.color` custom field), `gradientToToken`, `image`, `effect` (`none`\|`particles`). Absent/`transparent` means the block shows whatever's behind it (page background, or current scroll content for the sticky Header). `packages/ui`'s `resolveBackground()` is the single place this shape turns into CSS — reused by every block and by `useTenantHead.ts` for the page-level background.
-
----
+**`Background`** shape (ADR-0005): `type` (`transparent`\|`solid`\|`gradient`\|`image`\|`fine-line-texture`\|`glass`, default `transparent`), `colorToken` (`primary`\|`secondary`\|`custom`), `customColor`/`gradientToCustom`, `gradientToToken`, `image`, `effect` (`none`\|`particles`). Absent/`transparent` shows whatever's behind the block. `lib/background.ts`'s `resolveBackground()` is the single place this shape turns into CSS.
 
 ## 7. Lead Flow
 
 ```
-Form submit (Nuxt)
-  → sanitize-html (allowedTags: []) — strip all HTML tags
-  → Upstash Redis rate limit (3 submissions / IP / hour)
-  → Cloudflare Turnstile verification
-  → POST /api/leads (Nuxt server route)
-    → INSERT into leads (Supabase)
-    → Database Webhook fires automatically
-      → Supabase Edge Function: handle-lead-webhook
-        → call Resend API (email notification)
-        → call WhatsApp Cloud API (notification)
-        → on any failure: INSERT into webhook_retries
-  → pg_cron job: every 5 minutes, retry failed webhooks (max 3 attempts)
+Form submit (React Client Component)
+  → Cloudflare Turnstile widget produces a token
+  → POST /api/leads
+    → Zod validation
+    → Turnstile siteverify (server-side)
+    → INSERT into leads (Supabase, secret key, server-only)
+  → Lead visible in Supabase Studio (filter by landing_page_id)
 ```
 
----
+No notification channels (email/WhatsApp) or retry queue in the MVP — deferred per ADR-0007. No rate limiting beyond Turnstile — acceptable at zero-traffic, revisit before paid-traffic launch.
 
-## 8. Shared TypeScript Types (`packages/types`)
-
-All contracts between Strapi, Nuxt, and Edge Functions must be typed here.
-**Never** duplicate type definitions across apps.
-
-Key exports:
-
-- `BlockType` — union of all block interfaces
-- `LandingPageConfig` — tenant config resolved from DB
-- `Lead` — lead payload (form → DB)
-- `LeadStatus` — `'new' | 'contacted' | 'converted' | 'lost'`
-- `RenderMode` — `'blocks' | 'custom'`
-- One interface per block (e.g. `HeroBlock`, `FooterBlock`, etc.)
-
----
-
-## 9. Feature Flags (Flipt)
-
-Flipt is self-hosted on Koyeb. Use feature flags for:
-
-- Rolling out new block types to specific clients
-- A/B testing layout variants
-- Enabling/disabling integrations without deploys
-
-Config lives in `infra/flipt/feature-flags.yaml`.
-SDK: `@flipt-io/flipt` (Node.js) used in both Nuxt server routes and Strapi.
-
----
-
-## 10. Code Conventions
+## 8. Code Conventions
 
 ### File naming
-
-- Vue components: `PascalCase.vue` (e.g. `HeroBlock.vue`)
-- Composables: `camelCase` with `use` prefix (e.g. `useTenant.ts`)
-- Server routes: `kebab-case` (e.g. `submit-lead.post.ts`)
+- React components: `PascalCase.tsx` (e.g. `HeroBlock.tsx`)
+- Hooks: `camelCase` with `use` prefix
+- Route handlers: `kebab-case` folder + `route.ts` (App Router convention)
 - Migrations: timestamp prefix (e.g. `20240101000000_create_leads.sql`)
-- Stories: `ComponentName.stories.ts`
 
-### Vue components
-
-- Always use `<script setup lang="ts">`
-- Props must be typed with interfaces from `packages/types`
-- No inline styles — use Tailwind classes only
-- No `console.log` — use Sentry for errors
+### React components
+- Server Components by default; `'use client'` only where interactivity requires it (forms, Turnstile widget)
+- Props must be typed with interfaces from `lib/types/blocks.ts`
+- No inline styles except where a runtime value can't be a Tailwind class (tenant colors, backgrounds — see ADR-0005)
+- No `console.log` in production code
 
 ### Git
-
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
-- Scope optional but encouraged: `feat(web): add hero block`
 - **Always ask before committing**
 
 ### Environment variables
-
-- Root `.env` (gitignored) is the **single source of truth** for local values; edit it and
-  run `mise run env:sync` to regenerate `apps/web/.env` + `apps/cms/.env` (GENERATED —
-  never edit by hand). mise auto-loads the root `.env` (`[env] _.file`)
+- Root `.env` (gitignored) is the single source of truth — mise auto-loads it and Next.js reads it natively from the project root (the old `env:sync` fan-out died with the monorepo)
 - Root `.env.example` is the only example file (local defaults pre-filled, secrets empty)
-- Real values are **never** in the repo
-- Prod values never live in local files: GitHub Actions secrets, Cloudflare Pages env,
-  Supabase function secrets/Vault, Strapi host dashboard
-- New variable → update root `.env.example`, the `env:sync` allowlist in `.mise.toml`,
-  `docs/SECRETS.md` (matrix), and `.github/SETUP.md` if CI consumes it
+- `NEXT_PUBLIC_*` vars are inlined into the client bundle — never put a secret behind that prefix
+- Keep `.env` values **bare**: no surrounding quotes, no inline `#` comments — mise's dotenv parser captures both verbatim as part of the value. Put the note on its own line above the key (`.env.example` follows this)
+- Prod values never live in local files: GitHub Actions secrets, Cloudflare env, Supabase Vault
+- New variable → update root `.env.example` and `docs/SECRETS.md`; `.github/SETUP.md` if CI consumes it
 
----
-
-## 11. Security Checklist
+## 9. Security Checklist
 
 Apply to every new endpoint, form, or database operation:
 
-- [ ] Input sanitized (`sanitize-html` with `allowedTags: []`)
-- [ ] Rate limit applied (Upstash Redis)
-- [ ] CORS restricted to known origins in Strapi and Nuxt
+- [ ] Input validated with Zod
 - [ ] Supabase RLS policy exists for affected tables
-- [ ] No secrets in code (Biome enforces via `security/noSecrets` rule)
+- [ ] No secrets in code (Biome enforces via `security/noSecrets`)
 - [ ] Turnstile verified on all public-facing forms
-- [ ] Secret key (`sb_secret_...`) only in server-side / Edge Functions — never in client code
+- [ ] Secret key (`sb_secret_...`) only in server-side code — never in client bundles or `NEXT_PUBLIC_*`
 
----
+## 10. Guardrails
 
-## 12. What Claude Must Always Ask Before Doing
+**Always ask before**: creating/deleting files outside the expected structure, running or generating database migrations, installing new dependencies, git commits/branches, touching `.env` values, modifying `lib/types/blocks.ts` interfaces (impacts every block consumer), any destructive or irreversible operation.
 
-- Creating or deleting files outside the expected structure
-- Running or generating database migrations
-- Installing new npm/pnpm dependencies
-- Making git commits or creating branches
-- Any operation touching `.env` values
-- Modifying `packages/types` interfaces (impacts all apps)
-- Any destructive or irreversible operation
+**Never**: use `any` in TypeScript (use `unknown` and narrow); commit `.env` files with real values; add a block without a matching type in `lib/types/blocks.ts` and schema in `lib/schemas/blocks.ts`; use the Supabase secret key in client-side code or `NEXT_PUBLIC_*` vars; use legacy `anon`/`service_role` JWT keys; use `console.log` in production; suggest Firebase, Strapi, Directus, Nuxt Content, Vue, ESLint, Prettier, or Yarn; skip the security checklist for a new form/endpoint; run `pnpm install` without asking first.
 
----
-
-## 13. What NOT To Do
-
-- Do not use `any` in TypeScript — use `unknown` and narrow, or define a proper type
-- Do not add `.env` files with real values to the repo
-- Do not add new blocks without a corresponding type in `packages/types`
-- Do not use the Supabase secret key (`sb_secret_...`) in client-side or Nuxt public runtime config
-- Do not use legacy `anon`/`service_role` JWT keys — this project uses publishable/secret keys only
-- Do not use `console.log` in production — use Sentry
-- Do not suggest Firebase, Directus, Nuxt Content, ESLint, Prettier, Yarn, or Next.js
-- Do not skip the security checklist for any new form or endpoint
-- Do not run `pnpm install` without asking first
-- Do not create files named `.env`, `.env.local`, `.env.production` with real values
-
----
-
-## 14. Current Project State
+## 11. Current Project State
 
 > Update this section at the end of each phase.
 
-- [x] Phase 1 — Scaffolding (monorepo, tooling, base config) — completed 2026-07-08, commit `1bc6ae6`
-- [x] Phase 2 — Infra (Supabase migrations, Edge Functions, pg_cron) — completed 2026-07-08, deployed to `wsfteewohhchwewwxnpn` and E2E-verified
-- [x] Phase 3 — CMS (Strapi 5, block content types, Dynamic Zone) — completed 2026-07-08, Strapi 5.50.0 booting locally against local Supabase Postgres, all 10 blocks + 9 shared components live, API route registered
-- [x] Phase 4 — Frontend (Nuxt 4, tenant middleware, block components, Storybook) — completed 2026-07-09, multi-tenant page rendering blocks with per-tenant theming, lead capture E2E-verified against local Strapi + Supabase, Storybook builds all 10 blocks
-- [x] Phase 5 — Integrations (PostHog, Sentry, Turnstile, Flipt) — completed 2026-07-09, PostHog funnel + Sentry (@sentry/nuxt) + Flipt fail-open + Turnstile widget wired; Upstash/Resend/WhatsApp already done in Phases 2/4. UptimeRobot + NocoDB remain manual dashboard setup.
-- [x] Phase 6 — CI/CD (GitHub Actions, backup workflow, Dependabot) — completed 2026-07-09, all `.github/` workflows created inactive (`workflow_dispatch`); hosting pivoted to Cloudflare (ADR 0001), Domainee removed.
+**Fases 1–6 (Nuxt/Strapi stack) — SUPERSEDED.** See ADR-0007 and `docs/HISTORY.md` for what shipped and why it was dropped.
 
-**All 6 phases complete.** Deployment (Cloudflare for web; Strapi/Flipt/NocoDB deferred) and the manual dashboard setup (UptimeRobot, NocoDB, branch protection, GitHub secrets) remain before first client onboarding — see `.github/SETUP.md` and ADR 0001.
+**MVP rewrite phases** (`.claude/docs/MVP_REWRITE_CONTEXT.md`):
+- [x] Fase 0 — Reset repo, infra, docs — completed 2026-08-04. Next.js 16.3.0 + React 19.2.8 + Tailwind 4.3.3 + Zod 4.4.3; flat app at root, monorepo gone. Verified: `biome check` + `tsc --noEmit` clean, `next build` and `opennextjs-cloudflare build` pass, tenant resolution by `Host` header confirmed on **both** `next dev` (:3000) and `wrangler dev` (:8787, real workerd) including port stripping. Supabase local + cloud (`ofpnglnnzpowlzsyfbit`) migrated: `blocks jsonb` added, `strapi` schema + `webhook_retries` + retry cron + lead webhook dropped, anon/authenticated grants restored to least privilege. Not yet built (Fase 1+): `lib/schemas/blocks.ts`, `lib/supabase.ts`, `lib/background.ts`, `components/blocks/*`, `app/api/leads/` — `app/page.tsx` is still a stub that prints the resolved tenant host.
+- [ ] Fase 1 — Core multi-tenant + Forge Company real content
+- [ ] Fase 2 — Lead capture (form → Supabase)
+- [ ] Fase 3 — Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`)
+- [ ] Fase 4 — Deploy (Cloudflare Workers, 3 domains live)
+- [ ] Fase 5 — Visibility (Supabase Studio + Cloudflare Analytics)
 
-**Company migration in progress (2026-07-20)**: the company is **Forge Company** — domain `forgecompany.example.com` (registro.br + Cloudflare DNS + Google Workspace); `admin@forgecompany.example.com` = infra/registration email, `contato@forgecompany.example.com` = public contact. All service accounts/keys are being migrated off the personal email — new Supabase project from scratch, every key rotated. Plan + status: `docs/GO_LIVE.md` §"Company account migration". **Fases A and B complete.** New Supabase cloud project is **`ofpnglnnzpowlzsyfbit`** (org Forge Company `tnacbzhyknaylpljhktv`), fully E2E-verified. All other credentials re-issued under `admin@` and live-validated: Resend, PostHog, Sentry (org `forge-company`), Upstash, Turnstile prod, Cloudflare, Anthropic. GitHub PAT intentionally not rotated (no org-level PATs exist); `WHATSAPP_*` still empty (Fase E). **Next: Fase C** — GitHub secrets, Cloudflare Pages deploy, activate workflows, branch protection, UptimeRobot.
+## 12. Learnings
 
----
+Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (2026-07-08 → 2026-08-04) are archived in `docs/HISTORY.md` — several entries (Supabase key model, Turnstile/Cloudflare token validation, mise/tera quirks) remain true and useful even after the rewrite.
 
-## 15. Learnings
+### 2026-08-04: Fase 0 — repo reset to Next.js 16 + Cloudflare Workers
 
-### 2026-07-08: Phase 1 deviations from the phase prompt
-- **Biome v2 (2.5.3)** instead of the prompt's `^1.9.0` (user decision): `--apply` → `--write` everywhere (package.json scripts, lint-staged, `.mise.toml` `lint:fix`); config migrated via `biome migrate` (`files.ignore` → `files.includes` with negated globs, `organizeImports` → `assist.actions.source.organizeImports`, `rules.recommended` → `rules.preset`); `css.parser.tailwindDirectives: true` required to parse Tailwind v4 `@theme` blocks; secrets rule is now stable `security/noSecrets` (the prompt's `noSecretInSource` never existed in Biome).
-- **`packages/types`**: `"typescript": "workspace:*"` from the prompt is invalid (TypeScript is not a workspace package) — pinned `^5.6.0` matching root.
-- **`.npmrc` at root** pins `registry=https://registry.npmjs.org/`: the machine's global npm config points to a private CodeArtifact registry (work account) that 401s; this project uses public packages only.
-- **pnpm 11** requires `allowBuilds: { '@biomejs/biome': true }` in `pnpm-workspace.yaml` for Biome's postinstall (the package.json `pnpm.onlyBuiltDependencies` field is not honored).
-
-### 2026-07-08: Phase 2 learnings
-- **RLS policies alone don't grant access**: Supabase no longer auto-grants DML privileges on new tables — `anon`/`service_role` had only TRUNCATE/REFERENCES/TRIGGER. Migration `20240101000002_enable_rls.sql` now has an explicit GRANTS section (least privilege: anon = SELECT landing_pages + INSERT leads; service_role = full DML). Without it, the anon lead INSERT fails with `permission denied` despite the policy existing.
-- **Supabase CLI** installed as root devDependency (`supabase ^2.109.1`, needs `allowBuilds` entry). Local commands use `--workdir infra` since config lives at `infra/supabase/config.toml`.
-- **`[db.seed]` with `sql_paths = ["./seed/*.sql"]`** added to config.toml — without it `supabase db reset` ignores the `seed/` directory.
-- **Edge Function**: `Deno.env.get(...)!` replaced with `?? ''` (Biome errors on non-null assertions); `noConsole` disabled via biome.json override for `infra/supabase/functions/**` (console is the logging mechanism in Edge Functions).
-
-### 2026-07-08: Supabase cloud setup — new API keys (user decision)
-- **New API keys only**: publishable (`sb_publishable_...`) replaces anon, secret (`sb_secret_...`) replaces service_role. Env vars renamed to `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY`. Legacy JWT keys to be disabled in the dashboard once nothing uses them.
-- **Edge Functions** read the secret via `JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')).default` (auto-injected JSON object keyed by key name); legacy var kept as fallback for local `functions serve`.
-- **pg_net/pg_cron/webhooks**: new keys are not JWTs — send on `apikey` header (Bearer → Invalid JWT). Retry-cron migration reads `project_url` and `secret_key` from Vault (`vault.create_secret(...)` once per environment).
-- **Cloud project**: `forge-pages` (`wsfteewohhchwewwxnpn`, sa-east-1, **Postgres 17** — config.toml bumped from 15; originally created as `forge-page`, renamed in dashboard 2026-07-08 — the ref is immutable and unaffected). CLI must always run with `--workdir infra`; a `supabase link` from repo root created a stray `supabase/` dir + an orphan `remote_schema` entry in the cloud migration history (repaired with `supabase migration repair --status reverted`).
-- **Deployed and E2E-verified 2026-07-08**: migrations pushed; Edge Function live with `verify_jwt = false` (new keys are not JWTs) + in-code `apikey` guard; Vault secrets `project_url`/`secret_key` set; Database Webhook `on-new-lead` (leads INSERT → handle-lead-webhook, `apikey` header) created in dashboard; legacy JWT keys disabled; full chain tested (publishable-key lead insert → webhook → Resend email, retry path exercised). `RESEND_FROM_EMAIL` temporarily `onboarding@resend.dev` until a sender domain is verified in Resend. WhatsApp channel dormant until `WHATSAPP_*` secrets are set (function skips unconfigured channels).
-
-### 2026-07-08: Dependency version audit (pre-Phase 3)
-- **Policy**: run `rtk proxy pnpm outdated -r` at the start of each phase; stay on latest stable unless an ecosystem peer blocks it — record any hold-back here with the reason.
-- **typescript 5.9.3 → 6.0.3**: our tsconfig is already modern (NodeNext, ES2022), unaffected by TS 6 removals of legacy targets/resolution; `vue-tsc` peers `>=5`. Fallback if Strapi 5 misbehaves in Phase 3: pin `^5.9` in `apps/cms` only.
-- **lint-staged 15.5.2 → 17.0.8**: requires Node ≥22.22 (we run 24 LTS); config format unchanged.
-- **Already latest**: biome 2.5.3, @changesets/cli 2.31.0, husky 9.1.7, supabase 2.109.1, pnpm 11.10.0, Node 24 (active LTS until Oct 2026 — Node 26 LTS lands then).
-- **Nuxt 4** (4.4.8, current stable) adopted as the frontend target (user decision, pre-code so zero migration cost); docs and Phase 4 prompt updated from Nuxt 3. Note Nuxt 4 default directory structure uses `app/`.
-
-### 2026-07-08: Phase 3 learnings (Strapi 5 CMS)
-- **camelCase field names (user decision)**: Strapi component/content-type attributes are camelCase (`ctaPrimaryLabel`, `menuLinks`, `seoOgImage`…) to match `packages/types` **exactly** — the prompt's snake_case JSON was overridden. Strapi's generated `types/generated/*.d.ts` confirmed field-for-field parity, so the REST API needs no snake→camel transform in Nuxt.
-- **Local Supabase as Strapi DB (user decision)**: `apps/cms/.env` points at the local stack (`127.0.0.1:54322`, `DATABASE_SSL=false`), keeping `strapi_*` tables out of the cloud project. Cloud connection deferred; set `DATABASE_URL` for prod.
-- **Upload provider**: the prompt's `@strapi/provider-upload-supabase` **does not exist on npm**; the only `strapi-provider-upload-supabase` is a dead 2022 Strapi-v4 package. Switched to the official `@strapi/provider-upload-aws-s3@5.50.0` (version-locked to core) pointed at Supabase Storage's S3 endpoint (`SUPABASE_S3_*` env vars, `forcePathStyle: true`). Bucket creation + credentials are a Phase 5 task; local disk upload is the fallback until then.
-- **`create-strapi` non-interactive**: needs `--install` (not just `--use-pnpm`) or it hangs on the "Install dependencies?" prompt and crashes (`ERR_USE_AFTER_CLOSE`). Flags used: `--typescript --use-pnpm --install --skip-cloud --no-example --no-git-init`.
-- **pnpm `allowBuilds`**: Strapi requires `@swc/core`, `core-js-pure`, `esbuild`, `sharp` set to `true` in `pnpm-workspace.yaml` (pnpm 11 leaves placeholder `set this to true or false` entries on first install).
-- **`apps/cms/tsconfig.json` does NOT extend `tsconfig.base.json`**: base uses `NodeNext` + `verbatimModuleSyntax` + `exactOptionalPropertyTypes`, incompatible with Strapi's CommonJS compilation. Kept Strapi's generated tsconfig and only added a `paths` alias for `@forge-pages/types` (types-only package → all imports are `import type`, erased at runtime).
-- **`apps/cms/biome.json`** needs `"root": false` (Biome 2 rejects nested root configs) and an `overrides` for `config/**` disabling `noNonNullAssertion` + `useNodejsImportProtocol` — Strapi's generated `config/admin.ts`/`database.ts` use `env(...)!` and bare `'path'`; keeping them pristine is `@strapi/upgrade`-safe. `noConsole` off cms-wide (Strapi logs via console).
-- **`--no-git-init` skips Strapi's `.gitignore`** — created `apps/cms/.gitignore` for `types/generated`, `.strapi-updater.json`, `.cache`, `exports`, etc. (root `.gitignore` already covers `.strapi`, `.tmp`, `dist`, `build`, uploads, `.env`).
-- **CORS**: Strapi 5.50 warns `enabled: true` on `strapi::cors` is insecure/deprecated — removed it, kept `{ headers, origin }` restricted to `localhost:3000` + `NUXT_PUBLIC_SITE_URL`.
-- **KNOWN DEVIATION — `FooterBlock.phones`**: `packages/types` types it as `string[]`, but Strapi can't model a repeatable scalar. Modeled as a repeatable `shared.phone` component (`{ label?, number }[]`) for editor UX, so the API returns objects, not strings. **Phase 4 must reconcile**: either map `.number` in the Nuxt renderer or update the type (needs approval — touches `packages/types`).
-- **Manual admin steps still pending (prompt Tasks 11 & 13, browser-only)**: create a test landing page (Hero + CTA Form), create the read-only `STRAPI_API_TOKEN` for Nuxt, and verify the live `?populate=blocks` API JSON. Admin user already registered locally. *(Done 2026-07-09: entry published, token in root `.env`, camelCase API shape confirmed against `packages/types`.)*
-
-### 2026-07-09: Phase 4 learnings (Nuxt 4 frontend)
-- **Prompt was Nuxt 3 / Tailwind v3 / Strapi v4 — corrected to our stack**: Nuxt 4.4.8 (`app/` dir, Vite 7), Tailwind v4 via `@tailwindcss/vite` plugin in `nuxt.config` `vite.plugins` (NOT `@nuxtjs/tailwindcss`), Strapi 5 flattened responses (`data[0].blocks`, no `.attributes`).
-- **`nuxi init` non-interactive** needs `-t minimal` (template is a required arg) + `--no-install --no-gitInit`.
-- **Tenant middleware** reads `landing_pages` with the **publishable** key (anon has SELECT + RLS published policy); column casing fixed via PostgREST aliasing in `.select('seoTitle:seo_title, …')` so the row matches camelCase `LandingPageConfig` (the prompt's `as LandingPageConfig` cast on snake_case was a lie). Lead insert uses the **secret** key server-side — the new `sb_secret_` key works fine through supabase-js (the Phase 2 Bearer/JWT caveat only applies to raw pg_net HTTP).
-- **Strapi fetch is proxied** through `server/api/blocks.get.ts` (not fetched from the page) so `STRAPI_API_TOKEN` never reaches the client and there's no server/client `useFetch` key mismatch. Deep populate `populate[blocks][populate]=*` returns nested component data (shallow `populate=blocks` does not).
-- **`@forge-pages/ui` ships raw `.vue`** — added to Nuxt `build.transpile`; Storybook `viteFinal` must push `@vitejs/plugin-vue` + `@tailwindcss/vite` explicitly (pnpm strict resolution stops `@storybook/vue3-vite` from auto-adding them). `storybook build` needs `CI=true`/`--disable-telemetry` to stay non-interactive. Stories import types from `@storybook/vue3` (needs to be a direct devDep).
-- **`packages/ui` tsconfig** extends base but overrides `lib` to include `DOM`/`DOM.Iterable` (base is ES2022-only; components use `fetch`). `exactOptionalPropertyTypes` (from base) forbids `foo: undefined` in story args — omit the field instead of setting it undefined.
-- **Dual Vite versions**: Storybook 8 pulled Vite 6 into `packages/ui`; pin `apps/web` to `vite@^7` (matches Nuxt 4) so `@tailwindcss/vite`'s plugin type matches Nuxt's expected `PluginOption` under `nuxt typecheck`.
-- **Biome ignore globs must be `**/`-prefixed** in this monorepo (`!**/.nuxt`, `!**/types/generated`, `!**/storybook-static`, …) — bare `!.nuxt` only matches the repo root, leaving nested generated dirs to blow up `biome check .`. Added `noConsole: off` override for `apps/web/server/**` (server logging) and disabled `noUnusedVariables`/`noUnusedImports`/`useVueMultiWordComponentNames` for `**/*.vue` (Biome can't see template-only usage).
-- **nuxt-security** provides an `xssValidator` that **rejects** request bodies containing HTML/script with 400 — a defense layer on top of the route's `sanitize-html`. Verified: `<script>` payload → 400 before the handler; clean lead → inserted.
-- **Integrations deferred to Phase 5** (user decision): Turnstile + Upstash run only when their keys are set (graceful skip + `console.warn`); `@sentry/nuxt` module not added yet; PostHog keys wired in `runtimeConfig`/CSP only.
-- **Local dev domain alignment**: host `localhost:3000/3001` → port stripped → `localhost`. Seed `02_landing_pages.sql` domain changed `localhost:3000` → `localhost`; the Strapi entry `domain` was set to `localhost` directly in the DB (the read-only Nuxt token can't PUT) so the block fetch matches.
-
-### 2026-07-09: Phase 5 learnings (integrations)
-- **Upstash rate limit verified with real keys** (Phase 4 wiring): 3/IP/hr → 4th 429. Gotcha: the code reads `UPSTASH_REDIS_REST_TOKEN` — a `.env` typo (`UPSTASH_API_TOKEN`) silently no-ops the limiter. The REST token is ~60+ chars (not the 36-char DB password/management token) and pairs with the REST URL; `WRONGPASS` means URL/token mismatch.
-- **PostHog**: use the **public Project API Key** (`phc_…`), region host (`https://us.i.posthog.com` / `eu`). `posthog-js` client plugin gated on the Flipt `analytics.posthog` flag via `/api/flags`. Funnel tracking is **event-based**: `CtaFormBlock` (framework-agnostic, in `packages/ui`) `defineEmits(view/submit/success/error)`; `index.vue` binds those on the dynamic `<component>` to `useTracking()` — keeps `packages/ui` free of Nuxt composables (Storybook-safe). Nuxt plugins must return a consistent type — mixing bare `return` with `return { provide }` fails typecheck; use `return {}` on early exits.
-- **Sentry**: use **`@sentry/nuxt`** (`@sentry/nuxt/module` + `sentry.client.config.ts`/`sentry.server.config.ts`), NOT the prompt's deprecated `@nuxtjs/sentry` (no Nuxt 4 support). `Sentry.init` with `dsn: undefined` is a safe no-op. `@sentry/cli` + `core-js` need `allowBuilds` entries.
-- **Turnstile widget** wired **vanilla** (load `challenges.cloudflare.com/turnstile/v0/api.js`, `window.turnstile.render`) inside `CtaFormBlock` gated on an optional `turnstileSiteKey` prop passed from `index.vue` — the `@nuxtjs/turnstile` `<NuxtTurnstile>` component can't live in the framework-agnostic UI package. Server verify (Phase 4) unchanged. Verified with Cloudflare **test keys** (`1x…AA` site / `1x0…AA` secret always pass): submit → 200; real secret without a token → 400. Real keys kept commented in `apps/web/.env` until activated.
-- **Flipt**: `@flipt-io/flipt@1.5` API is `new FliptClient({ url, authenticationStrategy: new ClientTokenAuthentication(token) })` + `client.evaluation.boolean({ namespaceKey:'default', flagKey, entityId, context })` → `{ enabled }` (NOT the prompt's `authentication:{clientToken}`). `server/utils/flipt.ts` **fails open** (returns true on error); `infra/flipt/feature-flags.yaml` committed; `/api/flags` is the real consumer (gates PostHog). Live eval needs a running Flipt server (Koyeb/Docker) — deferred.
-- **Domainee** was implemented in Phase 5 then **removed in Phase 6** — hosting pivoted to Cloudflare (ADR 0001), whose for-SaaS custom-hostname API provisions SSL for free, so Domainee (paid, unverified `api.domainee.io`) is no longer needed. The `adminApiToken`/admin-domains endpoint went with it.
-- **Biome ignores extended**: `!**/.strapi-updater.json` + `!.claude` (Strapi update cache + Claude settings are generated/tooling, not source).
-- **Manual, not in repo**: UptimeRobot monitors + NocoDB partner workspace (dashboard setup per the phase prompt).
-
-### 2026-07-20: Company migration Fase B — Supabase (new project)
-- **New cloud project `ofpnglnnzpowlzsyfbit`** (org Forge Company `tnacbzhyknaylpljhktv`, sa-east-1, PG17) replaces the personal-account `wsfteewohhchwewwxnpn`. Root `.env` now holds the new ref/host/DB-password; prod URL + publishable/secret keys live in a new `PROD_*` section (dev keys stay the local-stack values — local=dev). Old project + `OLD_*` values await Fase D revocation.
-- **CLI auth headless**: `supabase login` needs a TTY; set `SUPABASE_ACCESS_TOKEN` (sbp_…) in the root `.env` instead — mise auto-loads it so every `supabase`/Management-API call authenticates. `supabase link --password` fails SASL right after project create; **reset the DB password via `PATCH /v1/projects/{ref}/database/password` first**, then link/push.
-- **Database Webhook created as a plain SQL trigger** (not the dashboard feature): `on_new_lead` AFTER INSERT on `leads` calls `net.http_post(project_url||'/functions/v1/handle-lead-webhook', apikey:=secret_key, body:={type,table,schema,record})`, reading both from Vault via `security definer`. Avoids the dashboard step and keeps the key out of the trigger body. The `supabase_functions` schema only exists once you use the dashboard webhook UI — the pg_net trigger needs none of it.
-- **Disable legacy JWT keys via API**: `PUT /v1/projects/{ref}/api-keys/legacy?enabled=false` (`enabled` is a **query param**, not JSON body; the JSON-body and PATCH forms 400).
-- **Secrets/functions Management endpoints return `400 "Resource has been removed"` when the project itself was deleted** — that phrasing means the project ref is gone, not an API outage (a project got deleted+recreated mid-setup here, changing the ref).
-- **`.env` pollution trap**: filling `.env` from the commented `.env.example` template leaves values as `KEY="v"   # note`. mise's dotenv parser and a naive `cut -d= -f2-` then capture quotes+comment. Fixed by normalizing the root `.env` and hardening `env:sync`'s `get()` to strip a surrounding quote pair + inline `#` comment via sed. Keep the root `.env` values bare (no quotes, no inline comments).
-- **mise task `run` = TOML `'''` literal** for scripts with shell quoting: `"""` basic strings process escapes, so `\'` (and other non-TOML escapes) throw "TOML parse error". Also still tera-rendered, so avoid `${#…}`.
-
-### 2026-07-20: Company migration Fase B — Resend
-- **Sending domain** `send.forgecompany.example.com` verified in Resend (DKIM TXT + MX/SPF on the `send.send…` host, DNS on Cloudflare). The `send.` subdomain keeps the root domain's Google-Workspace SPF/MX untouched. `RESEND_FROM_EMAIL=leads@send.forgecompany.example.com` must be on the verified domain; `RESEND_NOTIFICATION_EMAIL=contato@forgecompany.example.com` only needs to *receive* (no Resend verification).
-- **Restricted "sending-only" API key**: the Resend key is scoped to send only — `GET /emails` returns `401 restricted_api_key`. Expected/desired (least privilege); don't "fix" it. Confirm delivery via the inbox or empty `webhook_retries`, not the Resend API.
-- **RESEND_* are Edge Function secrets, not app env**: they live in Supabase function secrets (`supabase secrets set --workdir infra`), are NOT in the `env:sync` allowlist, and the root `.env` is only a local mirror. Swapping the key in `.env` does nothing until you re-run `secrets set` (the deployed function keeps the old value).
-- **Lead INSERT via publishable key needs `Prefer: return=minimal`**: anon has INSERT but no SELECT policy on `leads`, so `return=representation` triggers a post-insert SELECT that fails RLS (`42501`). Only bites direct publishable-key inserts / testing — the Nuxt route inserts server-side with the secret key.
-
-### 2026-07-20: Company migration Fase B — Sentry / PostHog / Upstash / Turnstile / Cloudflare / Anthropic / GitHub
-- **Sentry org is `forge-company`** (US region), project `forge-pages` — unrelated to the GitHub org rename. Slug lives in `apps/web/nuxt.config.ts` (`sentry.sourceMapsUploadOptions.org`) **and** `.claude/AGENTS.md` (`SENTRY_ORG`); keep both in sync.
-- **Sentry source-map token = Organization Token** (`sntrys_…`, Settings → Developer Settings → Organization Tokens), not a personal token — a personal one dies when its creator leaves the org. The `sntrys_` prefix is base64 JSON (`{iat,url,region_url,org}`) — decode it to confirm which org a token belongs to. Its scopes are fixed and narrow: `GET /api/0/organizations/` **403s**, which is expected, not a bad token.
-- **Validating a Sentry setup without the dashboard**: `sentry-cli releases -o <org> -p <project> list` exits 0 on a real project and 1 on a bogus one — that proves org+project+token together. The binary is a transitive dep at `node_modules/.pnpm/node_modules/.bin/sentry-cli` (not in `apps/web/node_modules/.bin`). To prove the DSN ingests, POST an envelope to `https://<host>/api/<projectId>/envelope/` with an `X-Sentry-Auth` header → `200 {"id":…}`.
-- **Cloudflare account-scoped tokens 401 on `/user/tokens/verify`** — that endpoint is user-scoped. Validate against an account endpoint instead (`/accounts/{id}/pages/projects`). A 401 there does **not** mean the token is bad.
-- **Turnstile secret validation without a widget**: POST `siteverify` with `response=dummy` — `invalid-input-response` means the secret is good; `invalid-input-secret` means it isn't.
-- **Anthropic key check is free**: `GET /v1/models` bills no tokens. `claude-review.yml` deliberately stays `workflow_dispatch`-only (user decision: no per-PR API spend — `/code-review` locally covers it), so `ANTHROPIC_API_KEY` is an **optional** GitHub secret, not a required one.
-- **GitHub has no org-level PAT** — every PAT is personal; the org equivalent is a GitHub App. No workflow here reads a PAT (`GITHUB_TOKEN` is auto-injected and covers checkout/PR comments/releases), so the personal PAT was intentionally not rotated. Only revisit if a workflow must trigger another workflow.
-- **zsh globs unquoted URLs**: `curl https://…?limit=1` fails with "no matches found" (the `?`). Always quote URLs with query strings in Bash tool calls.
-
-### 2026-07-20: Env management reorg (migration Fase A)
-- **Root `.env` = single source of truth**; `mise run env:sync` (task in `.mise.toml`) regenerates `apps/*/.env` from allowlists. `HOST`/`PORT` must NOT be in the root `.env`: mise exports it to every process and Nuxt would bind Strapi's `PORT=1337` (Strapi's own defaults cover them).
-- **mise task scripts are rendered through tera**: bash `${#ARRAY[@]}` breaks parsing (`{#` opens a tera comment). Avoid `${#…}` in `.mise.toml` scripts.
-- **`[env] _.file = ".env"`** silently ignores a missing file — safe on fresh clones.
-- Root `.env` keeps an `OLD_*` section with personal-account cloud values pending revocation (migration Fase D) — nothing consumes `OLD_*` vars; delete the section after revoking.
-
-### 2026-07-09: Local multi-tenant demo + client onboarding
-- **Testing multiple tenants locally**: use `*.localhost` subdomains (browsers resolve them to loopback, no `/etc/hosts`; the tenant middleware strips the port). Seed one `landing_pages` row + one **published** Strapi entry per domain — both keyed on the identical `domain`. `infra/supabase/seed/` now has 3 demo clients (`forge-motos`/`clinica`/`advocacia`.localhost); bare `localhost` is no longer a tenant.
-- **Strapi 5 REST creates drafts only**: there is no publish action on the content API, so an API token can't seed *published* content. The working path is a **Document Service script** run inside the app context — `apps/cms/scripts/seed-content.cjs` (`createStrapi(await compileStrapi()).load()` then `app.documents(uid).create({ data, status: 'published' })`). No token needed; it replaces (delete + recreate) each listed domain so edits always apply.
-- **Must be `.cjs` / `require`**: importing `@strapi/strapi` from a pure-ESM `.mjs` hits `ERR_UNSUPPORTED_DIR_IMPORT` on Strapi's `.mjs` build (`lodash/fp` directory import); the CommonJS build resolves fine. `app.destroy()` throws a benign `aborted` when a dev server shares the DB — wrap in `.catch(() => {})` so the script still exits 0.
-- **Onboarding doc**: `docs/ADD_CLIENT.md` (local fast/CMS paths + prod Cloudflare custom-hostname flow).
-
-### 2026-07-21: Figma design system (ADR-0002) — Starter-plan limits + local-plugin workflow
-- **File**: "forge-pages — Design System" (fileKey `sVFHETEHCtyUZvtGiPTsdn`, team `dellaquila`, project `241884851`). 10 Component Sets built = the 10 blocks, all on the naming contract. Pages: `Hero`, `Stats`, `Blocks` (holds the other 8 in a column; renamed from `Foundations`). Variables collection `tenant` = `primary`/`secondary`/`font` (mirror the `--tenant-*` CSS vars). Decision: **stay on Figma Starter (free), do NOT subscribe** — base structure is one-time, later use is sparse.
-- **Figma Starter plan hard limits (all confirmed the hard way)**: (1) **6 MCP tool calls per MONTH** — resets monthly, not a short cooldown; **`use_figma` (write) counts too**, only `add_code_connect_map`/`generate_figma_design`/`whoami` are exempt (useless for building). (2) **Max 3 pages.** (3) **Code Connect requires a Dev/Full seat on Org/Enterprise** — unavailable even via MCP; ADR-0002 rule 5 is therefore optional/plan-gated and the naming contract (rules 1–3) is the operative translation mechanism. Source doc: MCP resource `file://figma/docs/rate-limits-access.md`.
-- **Workaround = local dev plugin (bypasses the MCP quota entirely)**: the same Plugin-API JS runs free/unlimited inside Figma desktop. Plugins live at `~/figma-plugins/` (untracked, outside repo). `forge-pages-blocks/` builds the remaining blocks; import via Plugins → Development → Import from manifest (WSL path `\\wsl.localhost\<distro>\home\dellaquila\figma-plugins\...`). **Standard method going forward for variants/new blocks: write via local plugin, validate by eye.** Real Plugin API ≠ MCP `use_figma` sandbox: NO `figma.createAutoLayout`/`node.set`/`node.query`/`node.screenshot`; use `createFrame`+`layoutMode`, `figma.currentPage`/`setCurrentPageAsync`, `figma.closePlugin`.
-- **Reading Figma back without MCP quota**: an export plugin (`~/figma-plugins/forge-pages-export/`) traverses the doc via Plugin API and downloads a structure JSON (+ per-set PNGs); Claude reads those files locally. Full read→edit loop stays off the MCP.
-- **Build gotchas**: `createComponent`/`createFrame` default to a **white fill** → set `fills=[]` on structural frames or text vanishes. Frames/components **clip by default** → set `clipsContent=false` (was cutting off elements). Wrapping TEXT needs `textAutoResize="HEIGHT"` + `layoutSizingHorizontal="FILL"` (FILL alone collapses it). Brand fills via `figma.variables.setBoundVariableForPaint(paint,"color",v)`; every text `setBoundVariable("fontFamily", fontVar)`.
-- **Contract conventions applied**: Set = PascalCase UID suffix; single variant `variant=default`; layer name = prop name (camelCase); **list = frame named after the prop holding COMPONENT instances all named `item`**, inner layers = item fields; optional flat field → `hasX` BOOLEAN component property (visible ref); optional per-item field → BOOLEAN on the item component.
-
-### 2026-07-22: Always-on hosting decision (ADR-0003) — VPS + Cloudflare Tunnel
-- **Reframing that drove it**: Strapi/NocoDB/Flipt are internal back-office, decoupled from the visitor hot path (Nuxt ISR on Cloudflare only hits Strapi on publish). So latency/HA barely matter; reliable provisioning + RAM + an auth gate do. That makes a cheap always-on VPS beat a free tier that may fail to provision.
-- **Oracle Always Free rejected**: free A1 **halved to 2 OCPU/12 GB on 2026-06-15** + `sa-saopaulo-1` recurring **"out of host capacity"**. Kept only as a $0 fallback. **Fly.io / Cloudflare Containers rejected**: both cheap + a good fit (services are effectively stateless — uploads→Supabase S3, DB→Supabase, Flipt→repo YAML), but each is a second edge/compute platform next to Cloudflare.
-- **Chosen**: **AWS Lightsail São Paulo, 2 GB** (largest free-trial-eligible bundle — the $24/4 GB tier is NOT trial-eligible). Lightsail's own trial is **90 days**, not 6 months; ~6 months comes from stacking the new AWS Free Tier credits (US$100, up to $200, 6-month window for new accounts) on top. ~R$62/mo after. Add a 1–2 GB swapfile for Strapi spikes.
-- **Cloudflare synergy is the point**: since Cloudflare is already core infra, a VPS pairs with **Cloudflare Tunnel** (cloudflared dials out → no public IP, no inbound ports except SSH, free TLS) + **Cloudflare Access** (free Zero-Trust gate ≤50 users, one Access app per hostname, policy = `@forgecompany.example.com`). Access is the authz boundary; the services aren't internet-reachable at all.
-- **Tunnel is locally-managed**: ingress rules versioned in `infra/vps/cloudflared/config.yml`; the per-tunnel `<UUID>.json` credential lives only on the VM (gitignored `cloudflared/credentials/`). Token-based (dashboard-managed) was the simpler alt, rejected to keep ingress as IaC.
-- **Layout**: `infra/vps/` (renamed from a since-dropped Oracle dir); no Caddy TLS overlay (Cloudflare terminates TLS); compose has `cms` + `nocodb` + `flipt` + a `cloudflared` overlay (`docker-compose.tunnel.yml`); env is `forge-services.env`. **No host ports published** — services talk over the internal compose network; smoke test publishes 1337 on loopback for `ssh -L`. Flipt uses `FLIPT_STORAGE_TYPE=local` reading `infra/flipt/` (declarative v1.1 format already there). NocoDB keeps local metadata + Supabase added as an in-app data source (avoids polluting the app schema). **Nuxt→Strapi server-side calls hit the Access gate — need a Cloudflare Access service token.** Runbook: `infra/vps/README.md`.
-
-### 2026-08-01: Strapi MCP server enabled (`config/server.ts` → `mcp.enabled: true`, Strapi ≥5.47)
-- Native endpoint is HTTP-only (`/mcp`) — bridged into `.mcp.json`/`.vscode/mcp.json.example` via `npx mcp-remote <url> --header "Authorization: Bearer <token>"`. Requires an **Admin token** (Settings → Admin tokens), not a Content API token; token scope determines which tools are exposed (read-only vs full CRUD/publish).
-- Token isn't a Strapi runtime var — it's consumed by the MCP client process, so it lives in the root `.env` **CLOUD OPS** section (`STRAPI_MCP_ADMIN_TOKEN`, not in the `env:sync` allowlist) and is referenced in `.mcp.json` as `${STRAPI_MCP_ADMIN_TOKEN:-}` (Claude Code CLI expands `${VAR}` in `command`/`args`/`env`/`headers` at launch; the empty default keeps the config parseable before the token is set — expansion does **not** work in the Desktop app).
-
-### 2026-08-01: Content Manager Preview (ADR-0004)
-- **`preview.config.allowedOrigins` is `string[]`, not a string** — Strapi 5.50's actual `PreviewConfig` type (`node_modules/@strapi/types`) is `allowedOrigins?: string[]`, even though official doc examples pass `env('CLIENT_URL')` (a bare string) and type-check fine in their own snippets. Caught by `strapi develop`'s TS compile step, not from the docs; wrap in an array.
-- **`PreviewHandlerParams.status` is `string | undefined`**, not just `string` — `new URLSearchParams({ ..., status })` fails to compile when `status` can be `undefined`; coerce with `status ?? 'published'`.
-- **Fixed a pre-existing gap**: `NUXT_PUBLIC_SITE_URL` was documented in `docs/SECRETS.md` as a `cms` (CORS) consumer but was never in `.mise.toml`'s `CMS_VARS` allowlist, so it silently never reached `apps/cms/.env` — Strapi's CORS config read it via a raw `process.env` fallback instead. Now also used as `CLIENT_URL` for the preview handler, and properly synced.
-- **The "read-only" `STRAPI_API_TOKEN`** (Phase 3) *can* read `status=draft` entries — verified end-to-end via `preview-blocks.get.ts`. "Read-only" refers to write access, not publication status; no separate draft-read token was needed.
-- **Verifying draft vs. published content without a browser/admin login**: the `strapi-mcp` tools (`list_landing-page`, `update_landing-page`, `discard_landing-page_draft`) let you create a real draft (edit without publishing) and revert it (`discard_draft`) entirely headlessly — used to prove `/preview?status=draft` returns edited content while `/` (Host-resolved, production) still serves the last-published version, without ever touching the Strapi admin UI.
-- **Not verified in-browser**: Strapi's Live Preview keystroke-level auto-refresh (postMessage `strapiUpdate`) — Strapi's own docs already flag it as unreliable for Dynamic Zone fields (this product's entire content model), so `PreviewBridge.vue`'s handshake is a best-effort convenience, not confirmed WYSIWYG. Confirm actual behavior next time someone previews live in the CM.
-
-### 2026-08-04: Tenant background system (ADR-0005) — Header/Hero variants + seam divider
-- **Canvas can't read CSS custom properties**: `ctx.fillStyle = 'rgba(var(--tenant-primary), …)'` silently fails — Canvas 2D never resolves CSS vars. `BackgroundParticles.vue` reads the *computed* value instead (`getComputedStyle(document.documentElement).getPropertyValue('--tenant-primary')`), then converts it to an `r,g,b` triplet via a throwaway `<span style="color:…">` + `getComputedStyle(...).color` (the browser normalizes any CSS color syntax — hex, named, `color-mix()` — to `rgb(...)`, so this handles more than a hand-rolled hex parser would).
-- **`color-mix(in srgb, …)` replaces hex/rgba math in JS** for translucency (the header's `glass` tint, the fine-line-texture's faded line) — modern-baseline CSS, no JS color parsing needed, and it composes with CSS var references directly (`color-mix(in srgb, var(--tenant-primary) 75%, transparent)`).
-- **A sticky Header can't default to `transparent` like other blocks**: every other block's "no background config" means `type: 'transparent'` (show whatever's behind), but a sticky header with nothing behind it but scrolling content becomes illegible. `HeaderBlock.vue` special-cases its own fallback to `{ type: 'glass', colorToken: 'custom', customColor: '#ffffff' }` — reproduces the old hardcoded `bg-white/90 backdrop-blur` exactly, so undecorated tenants are unaffected.
-- **PostgREST can't alias flat columns into nested JSON** in a `.select()` string — `tenant.ts` selects the six `background_*` columns flat (aliased to camelCase) and assembles the nested `Background` object in a small `toBackground()` step after the query returns, not in the select itself.
-- **Official `@strapi/plugin-color-picker`** (5.50.0, version-locked to `@strapi/strapi` — same pinning pattern as `@strapi/provider-upload-aws-s3`) registers a custom field at `plugin::color-picker.color`, backed by `type: "string"` in the schema (`"customField": "plugin::color-picker.color"` alongside `"type": "string"`, not `"type": "customField"` — the UID goes in a separate key). Registration is `'color-picker': { enabled: true }` in `config/plugins.ts`.
-- **The particle effect moved from a Hero variant to a `Background.effect`**, decoupling it from layout and fixing a pre-existing ADR-0002 violation where the old `ember` variant hardcoded hex colors instead of tenant vars. `HeroVariant` is now purely layout (`default`\|`centered`); the retired `'ember'` value only ever existed in the Forge Company seed, which was rewritten (not migrated — nothing was in production).
-- **Deliberately deferred (again)**: Header and Hero both now have two variants each and still use single-file internal branching rather than the ADR-0002-anticipated per-block-directory split — same "earns its keep at a third layout" call already made for Hero's original `ember`/`default` split. Footer's hardcoded `bg-gray-900` (zero tenant vars) is a known, separate gap, out of scope here.
-
-### 2026-08-04: Strapi schema isolation incident (ADR-0006)
-- **Root cause of "Strapi login broken + data gone"**: local Strapi and the Supabase app tables shared the same Postgres **database and schema** (`postgres`/`public`) — Strapi's `DATABASE_SCHEMA` had never been set, defaulting to `public`. A routine `supabase db reset --workdir infra` (testing a new migration) recreates that schema from `infra/supabase/migrations` + seed, which silently wiped all 78 Strapi-owned tables (`admin_users` included) along with it — a system Supabase's CLI has no knowledge of. Strapi's still-running dev server rebuilt its own schema fresh on the next request, so the "admin account" afterward was a brand-new empty one, not the original — hence "wrong password" (right password, wrong/nonexistent account). Content itself survived because `seed-content.cjs` had been re-run; the admin account had no equivalent recovery path.
-- **Fix**: `DATABASE_SCHEMA=strapi` (root `.env` → synced to `apps/cms/.env` via `CMS_VARS`) isolates Strapi into its own Postgres schema. Existing tables/sequences were migrated with `ALTER TABLE/SEQUENCE ... SET SCHEMA strapi` (data-preserving) rather than starting empty. Confirmed via `\dt` diff: exactly 4 tables (`clients`, `landing_pages`, `leads`, `webhook_retries`) are Supabase-owned in `public`; everything else Strapi generates.
-- **Separate, pre-existing bug found in the same incident**: `apps/cms/config/plugins.ts` had no `email` provider configured at all, so `POST /admin/forgot-password` always returned `204` (by design, to prevent user enumeration) while silently never sending anything — no local MTA, no provider package installed. Fixed with `@strapi/provider-email-nodemailer` (pinned `5.50.0`, matching the core-version-lock convention used for the S3 upload provider and color-picker plugin) against Resend's SMTP relay (`smtp.resend.com`), reusing the existing `RESEND_API_KEY`/`RESEND_FROM_EMAIL` — now also synced into `apps/cms/.env` (previously Edge-Function-only, per the 2026-07-20 Resend learning).
-- **`admin@forgecompany.localhost`-style local-dev admin emails can never receive password resets** regardless of provider config — `.localhost` isn't a routable domain (no MX records). Any admin account that needs a working forgot-password flow needs a real, receivable email address.
-- **Recovery without a working login or reset email**: `strapi admin:create-user -e <email> -p <password> -f <first> -l <last>` (run from `apps/cms`) creates a new admin directly via CLI, bypassing both the UI and email entirely — the actual unblock used here.
-- **`.env.strapi` at repo root was untracked by luck, not by rule** — none of `.gitignore`'s `.env` patterns (`.env`, `.env.local`, `.env.*.local`, `.env.production`, `.env.staging`) match arbitrary `.env.<name>` files. Added `.env.strapi` explicitly; any future ad-hoc `.env.*` file needs the same explicit entry, the wildcard patterns don't cover it.
+- **Keep `middleware.ts`; do NOT migrate to Next 16's `proxy.ts`.** `next build` prints a deprecation warning telling you to switch, and switching passes `next build` — then fails `opennextjs-cloudflare build` with "Node.js middleware is not currently supported." `proxy.ts` is hardwired to the Node.js runtime (Next *throws* on a route segment config in a proxy file), and OpenNext/Cloudflare only supports Edge middleware. Next's own v16 upgrade guide says to stay on `middleware` if you need edge. The warning is a trap for this deploy target; `middleware.ts` carries a comment saying so.
+- **`Headers.set()` returns `void`**, so it can't be chained off the constructor — `new Headers(h).set(...)` fails with `TS2322: Type 'void' is not assignable to type 'Headers | undefined'`. Assign, then mutate. (The original snippet in `.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` had this bug; it's corrected there now.)
+- **Verify on the Workers runtime, not just `next dev`.** `next build` succeeding proves nothing about Workers — the middleware constraint above only surfaces in `opennextjs-cloudflare build`, and only `wrangler dev` exercises workerd. Both are part of the verification loop.
+- **Tenant assertions need `<!-- -->` tolerance**: React emits an HTML comment between static text and an interpolated value, so `grep "Tenant host: [^<]*"` finds nothing. Match `Tenant host: <!-- -->[^<]*` (or read the RSC payload).
+- **Cloud grant drift is real and RLS masks it.** `supabase db diff --linked` found `anon` *and* `authenticated` holding SELECT/INSERT/UPDATE/DELETE on all three tables, far beyond what the RLS migration grants. RLS was still blocking it (no matching anon policy), so nothing was exploitable — but table grants are the second layer and must not be wider than the policies. Fixed in `20260804000001_revoke_anon_write_grants.sql`, which also does `alter default privileges ... revoke` so new tables don't reintroduce it. **Run `supabase db diff --linked` after any cloud push** — `db push` reporting success does not mean cloud matches the migrations.
+- **Guess a function name in a DROP and it silently no-ops.** The lead webhook trigger function was `on_new_lead_webhook()`, not the `notify_new_lead()` a migration guessed, so the function outlived its trigger. `drop ... if exists` reports success either way; confirm the real name (via `db diff` or `pg_proc`) before trusting the drop.
+- **Always pass `--workdir infra` to `supabase`.** Without it the CLI creates a stray `./supabase/` at the repo root and links the project there (now gitignored, and the `db:migrate` task hardcodes the flag). `supabase db execute` does not exist in CLI 2.111 — seeding goes through `db reset`, driven by `config.toml`'s `[db.seed] sql_paths`.
+- **Next 16 writes root `AGENTS.md` + `CLAUDE.md` on every `next dev`** (`agentRules`), containing its own "this is NOT the Next.js you know" guardrail. Kept deliberately — that block is exactly the warning that the `middleware`/`proxy` trap above needed. The project's own instructions stay in `.claude/CLAUDE.md`; set `agentRules: false` in `next.config.ts` if the duplication ever becomes a problem.
+- **`pnpm run lint` fails in this environment via the rtk hook** (misroutes to eslint: `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL, Command "eslint" not found`). The script is `biome check .` and is fine — run `rtk proxy pnpm run lint` or `pnpm exec biome check .`.
+- **pnpm 11 build allowlist** moved to `pnpm-workspace.yaml`'s `allowBuilds` (kept even with no workspace packages): `esbuild` and `workerd` need `true`, set via `pnpm approve-builds --all`.

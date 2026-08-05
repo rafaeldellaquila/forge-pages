@@ -22,8 +22,3 @@ port = 54324
 
 [storage]
 enabled = true
-
-# New API keys are not JWTs, so the platform JWT check must be off;
-# the function authorizes callers itself by comparing the apikey header.
-[functions.handle-lead-webhook]
-verify_jwt = false

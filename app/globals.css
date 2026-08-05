@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+:root {
+  --tenant-primary: #171717;
+  --tenant-secondary: #ededed;
+}
+
+body {
+  color: var(--tenant-primary);
+}

@@ -1,7 +1,7 @@
 # Skill: Security Checklist
 
 Use this skill before completing any feature that involves:
-- A new server route or API endpoint
+- A new route handler or API endpoint
 - A new form or user input
 - A new database table or column
 - A new external service integration
@@ -10,61 +10,68 @@ Run through this checklist item by item. Do not mark a feature complete until al
 
 ---
 
-## Input security
+## Input validation
 
-- [ ] **All user-supplied strings pass through `sanitize-html`** with `allowedTags: []`
-  - Applied in server route, not client-side
-  - Both direct fields (`body.name`) and nested objects (`body.items[].text`)
-  - Exception: fields that are URLs — use `new URL(value)` validation instead
+- [ ] **Every request body / search param is parsed with a Zod schema** before use
+  - Parse at the server boundary (route handler / Server Action), not in the client
+  - Use `safeParse` and return **400** on failure — never let a bad shape reach the DB
+  - Schemas live next to the contract they validate (`lib/schemas/`)
 
-- [ ] **No `body.*` inserted directly into Supabase**
-  - Always go through the sanitized variable
-  - Pattern: `const clean = { name: sanitize(body.name) ?? '' }`
+- [ ] **No raw request object inserted into Supabase**
+  - Insert the parsed result, not the original body: `const { data } = schema.safeParse(body)`
+  - Zod strips unknown keys by default — rely on that instead of hand-picking fields
 
-- [ ] **Required fields validated before DB insert**
-  - Missing required field → 400, not 500
+- [ ] **Strings that end up in HTML are rendered as text, not markup**
+  - React escapes interpolated values automatically; the risk is only
+    `dangerouslySetInnerHTML` — do not introduce it for user-supplied content
+  - URL fields: validate with `z.string().url()` (or `new URL(value)`), and constrain the
+    protocol if the value becomes an `href`
 
 ---
 
 ## Authentication and authorization
 
-- [ ] **Tenant verified** for any public-facing route
-  - `event.context.tenant` must not be null
-  - Missing tenant → 404 (not 403, to avoid information leakage)
+- [ ] **Tenant resolved and verified** for any public-facing route
+  - The tenant comes from the `Host` header via `middleware.ts` — never from a client-supplied
+    body field or query param
+  - Unknown tenant → **404** (not 403, to avoid information leakage)
 
-- [ ] **Service role key used in server routes** (not anon)
-  - `config.supabaseServiceRoleKey` in `createClient()`
-  - Anon key only in client-side Supabase calls (e.g. public read)
+- [ ] **Secret key used server-side only**
+  - `SUPABASE_SECRET_KEY` (`sb_secret_...`) in route handlers / Server Components only
+  - The publishable key is the only one that may reach the browser
+  - Never behind a `NEXT_PUBLIC_*` name — that prefix inlines the value into the client bundle
 
-- [ ] **Admin/internal routes protected** with server-side token check
-  - Not just by obscurity — must verify a secret header or session
-
----
-
-## Rate limiting
-
-- [ ] **Upstash Redis rate limit applied** to any route accepting user input
-  - Key format: `<action>:<tenant_id>:<ip>`
-  - Public forms: 3 per IP per hour
-  - Adjust limit based on risk (lower for sensitive, higher for low-risk)
-  - Returns 429 with no body on limit exceeded
+- [ ] **Admin/internal routes protected** with a server-side check
+  - Not just by obscurity — verify a secret header or session
 
 ---
 
 ## Bot protection
 
 - [ ] **Cloudflare Turnstile verified** on all public-facing forms
-  - Verified server-side — never trust client-side result
-  - Invalid token → 400
-  - Test key for dev: `1x00000000000000000000AA`
-  - Remove test key before deploying to production
+  - Verified server-side via `siteverify` — never trust the client-side result
+  - Invalid or missing token → 400
+  - Dev/test pair (always passes): site `1x00000000000000000000AA`,
+    secret `1x0000000000000000000000000000000AA` — must not reach production
+
+---
+
+## Rate limiting — known gap
+
+Rate limiting is **deferred** in the MVP (ADR-0007): Turnstile is the only throttle on
+`POST /api/leads`.
+
+- [ ] Do **not** block a feature on this, but do **flag it** if the change increases exposure
+  (a new public endpoint, a form that triggers cost, anything enumerable).
+- [ ] It must be revisited before any **paid-traffic launch**. When it comes back, the shape
+  is per-action + per-tenant + per-IP keys, 429 on limit exceeded.
 
 ---
 
 ## Database security
 
 - [ ] **RLS enabled** on any new table
-  - Check in Supabase dashboard: Authentication → Policies
+  - Verify in Supabase Studio: Authentication → Policies
   - Table with RLS but no policies = no access for anyone (good default)
 
 - [ ] **RLS policies match intended access pattern**
@@ -72,48 +79,38 @@ Run through this checklist item by item. Do not mark a feature complete until al
   - Public insert: `for insert to anon with check (true)`
   - Internal only: `to service_role using (true) with check (true)`
 
-- [ ] **No secret key (`sb_secret_...`) exposed** in client-side code or public runtime config
-  - Check `nuxt.config.ts`: the secret key must NOT be under `runtimeConfig.public`
+- [ ] **Grants exist, not just policies** — Supabase does not auto-grant DML on new tables;
+  a policy without a `grant` still fails with `permission denied`
+
+- [ ] **No secret key (`sb_secret_...`) exposed** in client-side code
+  - Grep the change for `NEXT_PUBLIC_` next to anything secret
   - Legacy anon/service_role JWT keys are not used in this project at all
 
 ---
 
 ## Error handling
 
-- [ ] **Database errors caught** and logged to Sentry — not returned to client
-  ```ts
-  if (error) {
-    Sentry.captureException(error)
-    throw createError({ statusCode: 500, message: 'Internal server error' })
-  }
-  ```
+- [ ] **Database errors caught** and not returned to the client
+  - Generic message + appropriate status to the caller; the detail stays server-side
+  - There is no error-tracking service in the MVP — server logs are the only trail, so make
+    the server-side message specific enough to debug from logs alone
 
-- [ ] **No stack traces or internal errors** returned in API responses
-  - Generic message to client, full error to Sentry
+- [ ] **No stack traces or internal errors** in API responses
 
-- [ ] **No `console.log`** with sensitive data
-  - Use Sentry for error tracking
-  - Biome will warn on `console.log` — fix it, don't suppress
+- [ ] **No `console.log`** with sensitive data or PII
+  - Biome warns on `console` — fix it, don't suppress
 
 ---
 
 ## Secrets
 
-- [ ] **No secrets in code** — all from `useRuntimeConfig()` or env
-  - Biome enforces `noSecretInSource` — check it passes
+- [ ] **No secrets in code** — all from `process.env`
+  - Biome enforces `security/noSecrets` — check it passes
   - Run `mise run lint` to verify
 
 - [ ] **`.env.example` updated** if a new env variable was added
-  - Key added with empty value and comment explaining where to get it
-
----
-
-## CORS
-
-- [ ] **Strapi CORS** still restricted to Nuxt origin after any Strapi change
-  - Check `apps/cms/config/middlewares.ts`
-
-- [ ] **No wildcard origins** (`*`) in production config
+  - Key added with an empty value and a comment explaining where to get it
+  - Also update the matrix in `docs/SECRETS.md`, and `.github/SETUP.md` if CI consumes it
 
 ---
 
@@ -121,7 +118,7 @@ Run through this checklist item by item. Do not mark a feature complete until al
 
 Run:
 ```bash
-mise run lint       # Biome: catches noSecretInSource, noConsole
+mise run lint       # Biome: catches security/noSecrets, noConsole, noExplicitAny
 mise run typecheck  # TypeScript: catches missing types, any usage
 ```
 

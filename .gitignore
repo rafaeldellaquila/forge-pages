@@ -8,19 +8,18 @@ node_modules/
 .env.*.local
 .env.production
 .env.staging
-.env.strapi
 
 # Build outputs
 dist/
-.output/
-.nuxt/
 build/
-storybook-static/
+.next/
+.open-next/
+out/
+next-env.d.ts
+*.tsbuildinfo
 
-# Strapi
-apps/cms/.strapi/
-apps/cms/.tmp/
-apps/cms/public/uploads/
+# Cloudflare
+.wrangler/
 
 # Logs
 *.log
@@ -40,6 +39,8 @@ Thumbs.db
 
 # Supabase CLI link artifacts
 infra/supabase/.temp/
+# A `supabase` command run without `--workdir infra` recreates this stray root dir
+/supabase/
 
 # Misc
 .cache/

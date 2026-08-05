@@ -1,9 +1,8 @@
 # Running forge-pages locally
 
-End-to-end local setup: local Supabase (DB + Storage + Edge Functions), Strapi CMS, the
-Nuxt web app, and Storybook. Everything runs on your machine — no cloud account or paid
-service required. Third-party integrations (PostHog, Sentry, Turnstile, Upstash, Flipt)
-degrade gracefully when their keys are absent.
+End-to-end local setup: the local Supabase stack (Postgres + Studio) and the Next.js app.
+Everything runs on your machine — no cloud account or paid service required. Turnstile is
+the only external integration, and it degrades gracefully when its keys are absent.
 
 ---
 
@@ -15,15 +14,15 @@ degrade gracefully when their keys are absent.
 
 ```bash
 mise install          # Node 24 + pnpm
-pnpm install          # workspace deps (also runs Strapi/Nuxt prepare)
+pnpm install          # dependencies
 ```
 
-> The `supabase`, `@swc/core`, `sharp`, `esbuild`, `@parcel/watcher`, `@sentry/cli`, and
-> `core-js` build scripts are pre-approved in `pnpm-workspace.yaml` (`allowBuilds`).
+> The `esbuild` and `workerd` build scripts are pre-approved in `pnpm-workspace.yaml`
+> (`allowBuilds`).
 
 ---
 
-## 2. Local Supabase (DB + Storage + Auth + Edge Functions)
+## 2. Local Supabase (Postgres + Studio)
 
 Config lives in `infra/supabase/config.toml`, so **every** Supabase command needs
 `--workdir infra`.
@@ -43,103 +42,106 @@ Local endpoints:
 | Studio (DB UI)     | http://127.0.0.1:54323           |
 | Mailpit (emails)   | http://127.0.0.1:54324           |
 
-`db reset` applies `infra/supabase/migrations/*` then seeds `infra/supabase/seed/*` —
-which creates a demo client and a **`landing_pages` row with `domain = 'localhost'`**
-(status `published`). That domain is how the web app resolves the tenant (see §6).
+`db reset` applies `infra/supabase/migrations/*` then `infra/supabase/seed/*`, which creates
+demo `clients` + `landing_pages` rows on `*.localhost` domains (see §5). Content itself
+(`landing_pages.blocks`) is a JSONB array you edit in Studio — see §4.
 
 ---
 
-## 3. Environment files
+## 3. Environment file
 
-The **root `.env`** (gitignored) is the single source of truth for local values —
-`apps/web/.env` and `apps/cms/.env` are **generated** from it and must never be edited
-by hand. Full variable → consumer → dev/prod matrix: `docs/SECRETS.md`.
+The **root `.env`** (gitignored) is the single source of truth. There is no per-app sync:
+mise auto-loads it for every task and the activated shell, and Next.js reads it natively
+from the project root. Full variable → consumer → dev/prod matrix: `docs/SECRETS.md`.
 
 ```bash
 cp .env.example .env          # non-secret local defaults are pre-filled
 # fill in: SUPABASE_PUBLISHABLE_KEY / SUPABASE_SECRET_KEY (from `supabase status`)
-#          APP_KEYS + the other Strapi secrets (openssl rand -base64 16)
-#          STRAPI_API_TOKEN (created in Strapi admin, step §4)
-mise run env:sync             # regenerates apps/web/.env + apps/cms/.env
 ```
 
 The `onboard-local` setup script does the copy + key filling automatically.
-mise auto-loads the root `.env` for every task and the activated shell.
 
-Optional integrations stay empty locally — each degrades gracefully:
-`UPSTASH_REDIS_REST_URL` (rate limiting skipped), `TURNSTILE_SECRET_KEY` (bot check
-skipped), `NUXT_PUBLIC_POSTHOG_KEY` (analytics off), `NUXT_PUBLIC_SENTRY_DSN`
-(Sentry no-op), `FLIPT_URL` (flags fail open).
+Restart the dev server after editing `.env`. `NEXT_PUBLIC_*` values are inlined at build
+time, so changing one requires a rebuild for `mise run preview` / `mise run build`.
 
----
-
-## 4. Strapi CMS
-
-```bash
-mise run dev:cms          # → http://localhost:1337/admin
-```
-
-First run:
-1. Create the admin user at `/admin`.
-2. **Content Manager → Landing Page → Create**: set **`domain` = `localhost`** (this must
-   match the Supabase tenant domain), add a **Hero** and **CTA Form** block, then
-   **Save → Publish**.
-3. **Settings → API Tokens → Create**: name `nuxt-read-only`, type **Read-only** → copy the
-   token into the root `.env` as `STRAPI_API_TOKEN`, then run `mise run env:sync`.
-
-> Media uploads use the S3 (Supabase Storage) provider only when `SUPABASE_S3_*` are set;
-> otherwise Strapi falls back to local disk (`apps/cms/public/uploads`).
+Turnstile can stay empty locally (bot check skipped). To exercise it, use Cloudflare's
+always-pass test pair: `NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA` and
+`TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA`.
 
 ---
 
-## 5. Nuxt web app
+## 4. Editing content (blocks)
+
+There is no CMS. Each tenant's page content is the `blocks` JSONB array on its
+`landing_pages` row (ADR-0007):
+
+1. Open Supabase Studio → `http://127.0.0.1:54323` → Table Editor → `landing_pages`.
+2. Pick the tenant's row, open the `blocks` cell, and edit the JSON array.
+3. Reload the page — the Server Component re-fetches and re-validates.
+
+Every block needs a matching TypeScript interface in `lib/types/blocks.ts` and a Zod schema
+in `lib/schemas/blocks.ts`. A block whose JSON fails its schema fails loudly at fetch time
+rather than rendering silently broken.
+
+---
+
+## 5. The app
 
 ```bash
-mise run dev:web          # → http://localhost:3000 (or 3001 if taken)
+mise run dev          # → http://localhost:3000
 ```
 
-After changing env vars (root `.env` + `mise run env:sync`), restart the dev server —
-runtime config is read at startup.
+The app resolves the tenant from the request `Host` header, so open the demo tenants by
+their seeded `*.localhost` subdomains (browsers resolve those to loopback with no
+`/etc/hosts` edits, and the middleware strips the port):
+
+| Address | Tenant |
+| --- | --- |
+| http://forgecompany.localhost:3000 | Forge Company |
+| http://forge-motos.localhost:3000 | Forge Motos |
+| http://clinica.localhost:3000 | Clínica Exemplo |
+| http://advocacia.localhost:3000 | Advocacia Prime |
+| http://unknown.localhost:3000 | **404** (no tenant for that domain) |
 
 ---
 
 ## 6. How the pieces connect (multi-tenant)
 
 ```
-Browser (Host: localhost:3000)
-  → server/middleware/tenant.ts   strips the port → domain "localhost"
-     → Supabase landing_pages WHERE domain='localhost' AND status='published'  (publishable key)
-     → event.context.tenant   (camelCase via PostgREST column aliasing)
-  → app/pages/index.vue        404 if no tenant; else:
-     → /api/blocks (server proxy, keeps STRAPI_API_TOKEN server-side)
-        → Strapi /api/landing-pages?filters[domain][$eq]=localhost&populate[blocks][populate]=*
-     → renders blocks via blockComponentMap with per-tenant CSS variables + SEO head
+Browser (Host: forgecompany.localhost:3000)
+  → middleware.ts            strips the port → sets the x-tenant-host request header
+  → app/page.tsx (Server Component)
+     → Supabase landing_pages WHERE domain = <host> AND status = 'published'
+     → 404 if no row; else validate `blocks` with lib/schemas/blocks.ts
+     → render each block via the block component map, with per-tenant CSS variables + SEO metadata
 ```
 
-**Both the Supabase `landing_pages.domain` and the Strapi entry `domain` must equal
-`localhost`** — the Supabase row resolves the tenant/theme, the Strapi entry supplies the
-blocks. The seed sets Supabase to `localhost`; you set Strapi to `localhost` in step §4.
-
-Lead flow: `CtaFormBlock` → `POST /api/leads` → sanitize-html → (Turnstile + Upstash *if
-configured*) → insert into Supabase `leads`. In the cloud project that insert fires the
-notification Edge Function (Resend + WhatsApp); locally the row is just stored.
+Lead flow: the CTA form (Client Component) produces a Turnstile token → `POST /api/leads`
+→ Zod validation → Turnstile siteverify → insert into Supabase `leads` with the secret key
+(server-only). Read the leads back in Studio, filtered by `landing_page_id`. There are no
+notification channels or rate limiting in the MVP — deferred per ADR-0007.
 
 ---
 
-## 7. Storybook (component catalog)
+## 7. Cloudflare Workers preview
+
+`mise run preview` builds with the OpenNext adapter and serves the result on the local
+Workers runtime — the closest local approximation of production:
 
 ```bash
-mise run storybook        # → http://localhost:6006  (all 10 blocks, ≥2 variants each)
+mise run preview      # opennextjs-cloudflare build && wrangler dev → http://localhost:8787
 ```
+
+Worth running before any deploy: Workers-runtime problems (Node API gaps, `next/image`
+quirks) surface here and not under `next dev`.
 
 ---
 
 ## 8. Verifying it works
 
 ```bash
-curl -s localhost:3000/api/health                       # {"ok":true,...}
-curl -s localhost:3000/api/flags                        # {"analyticsPosthog":true,...} (Flipt fail-open)
-open http://localhost:3000                               # Hero + CTA Form render, tenant colors applied
+curl -s -H "Host: forgecompany.localhost" http://localhost:3000/ | grep -oiE '<title>[^<]*</title>'
+open http://forgecompany.localhost:3000     # blocks render, tenant colors applied
 # Submit the form → check the lead landed:
 docker exec supabase_db_infra psql -U postgres -d postgres -c \
   "select name, whatsapp, intent from public.leads order by created_at desc limit 1;"
@@ -147,61 +149,61 @@ docker exec supabase_db_infra psql -U postgres -d postgres -c \
 
 ---
 
-## 9. Integrations — local behavior
-
-| Integration | Without keys | To enable locally |
-| ----------- | ------------ | ----------------- |
-| PostHog     | off          | set `NUXT_PUBLIC_POSTHOG_KEY` (`phc_…`) + `NUXT_PUBLIC_POSTHOG_HOST` |
-| Sentry      | no-op        | set `NUXT_PUBLIC_SENTRY_DSN` |
-| Turnstile   | skipped (form works) | set site + secret keys; test keys `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA` always pass |
-| Upstash     | rate limit skipped | set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
-| Flipt       | fails open (all flags true) | run a Flipt server + set `FLIPT_URL` |
-
----
-
-## 10. Common tasks
+## 9. Common tasks
 
 ```bash
-mise run lint             # Biome check (whole repo)
-mise run lint:fix         # Biome auto-fix
-mise run typecheck        # tsc / vue-tsc / nuxt typecheck across packages
-mise run gen:block <name> # scaffold a new block (type + Vue + story)
+mise run lint                   # Biome check (whole repo)
+mise run lint:fix               # Biome auto-fix
+mise run typecheck              # tsc --noEmit
+mise run build                  # next build
+mise run gen:block <name>       # scaffold a React block component
 mise run gen:migration <name>   # new timestamped SQL migration
-mise run dev              # Nuxt + Strapi together
+mise run clean                  # delete build artefacts
+mise run reset                  # + delete node_modules and reinstall
 ```
 
----
-
-## 11. Troubleshooting
-
-- **Port 3000 busy** → Nuxt auto-uses 3001; the tenant still resolves (port is stripped).
-- **`Another Nuxt dev is already running`** → kill the process on the port
-  (`kill $(ss -ltnp | grep :3001 | grep -oE 'pid=[0-9]+' | cut -d= -f2)`) and restart.
-- **Page 404s** → no `landing_pages` row for `localhost` (run `supabase db reset`) or it's
-  not `published`.
-- **Page renders but no blocks** → the Strapi entry's `domain` isn't `localhost`, or it
-  isn't published.
-- **Upstash `WRONGPASS`** → the REST token doesn't match the URL; copy both from the same
-  DB's REST API `.env` tab (`UPSTASH_REDIS_REST_TOKEN`, ~60+ chars).
-- **Strapi won't boot** → check the `DATABASE_*` values in the root `.env` (then
-  `mise run env:sync`) + that Supabase is running (`supabase status --workdir infra`).
+`mise tasks` lists everything with descriptions.
 
 ---
 
-## 12. Production build & deploy (Cloudflare Pages)
+## 10. Troubleshooting
 
-The web app targets **Cloudflare Pages** (see `docs/adr/0001-hosting-cloudflare.md`).
+- **Page 404s** → no `landing_pages` row for that host, or the row isn't `published`
+  (`pnpm exec supabase db reset --workdir infra` to restore the seed).
+- **Page renders but no blocks** → the row's `blocks` array is empty (`[]` is the column
+  default) — add blocks in Studio (§4).
+- **Blocks fail validation** → the JSON doesn't match `lib/schemas/blocks.ts`; the Zod
+  error names the offending path.
+- **`supabaseUrl is required` / missing key** → the dev server started before `.env` was
+  filled; restart it.
+- **Turnstile always fails** → the site key and secret must come from the same widget; the
+  `1x…` test pair always passes.
+- **Port 3000 busy** → `next dev` picks the next free port; the tenant still resolves (the
+  port is stripped from the host).
+- **Stale build / odd module errors after switching branches** → `mise run clean`, or
+  `mise run reset` to also rebuild `node_modules` from the lockfile. Neither touches
+  `.env` or the Supabase link.
+- **`pnpm run lint` fails with `Command "eslint" not found`** → an environment wrapper
+  misroutes the script; the real script is `biome check .`. Use `mise run lint` or
+  `pnpm exec biome check .`.
+
+---
+
+## 11. Production build & deploy (Cloudflare Workers)
+
+The app deploys to **Cloudflare Workers** via `@opennextjs/cloudflare`
+(`docs/adr/0001-hosting-cloudflare.md`; Vercel Pro is the documented Plan B).
 
 ```bash
-pnpm --filter web build:cloudflare        # NITRO_PRESET=cloudflare-pages → apps/web/dist
-pnpm --filter web preview:cloudflare      # local Workers runtime preview (wrangler pages dev)
-pnpm --filter web deploy:cloudflare       # wrangler pages deploy dist  (needs Cloudflare auth)
+mise run build:cloudflare    # opennextjs-cloudflare build → .open-next/
+pnpm run deploy              # build + wrangler deploy   (needs Cloudflare auth)
 ```
 
-Config: `apps/web/wrangler.toml`. CI: `.github/workflows/deploy.yml` (inactive; needs
-`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`). Strapi/Flipt/NocoDB deployment is
-deferred — see `.github/SETUP.md`.
+Config: `open-next.config.ts` (adapter) + `wrangler.jsonc` (Worker name, assets, bindings).
+CI: `.github/workflows/deploy.yml` (inactive; needs `CLOUDFLARE_API_TOKEN` +
+`CLOUDFLARE_ACCOUNT_ID`). Per-client custom hostnames and SSL come from Cloudflare for
+SaaS — see `docs/ADD_CLIENT.md`.
 
-> First deploy: verify server deps behave on the Workers runtime (`nodejs_compat` is on).
-> Sentry's server SDK is Node-oriented; if it misbehaves on Workers, guard it or switch to
-> `@sentry/cloudflare`.
+> ISR is emulated by OpenNext via stale-while-revalidate, and the cache key does not
+> include the `Host` header — prefer explicit per-tenant revalidation over a bare
+> `revalidate: N` on the root page (`.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1).

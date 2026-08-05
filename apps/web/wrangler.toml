@@ -1,9 +1,0 @@
-# Cloudflare Pages config for the Nuxt web app (see docs/adr/0001-hosting-cloudflare.md).
-# Build first:  NITRO_PRESET=cloudflare-pages pnpm --filter web build   (outputs to dist/)
-# Preview:      pnpm dlx wrangler pages dev dist
-# Deploy:       pnpm dlx wrangler pages deploy dist
-name = "forge-pages"
-compatibility_date = "2025-07-15"
-# nodejs_compat lets the SSR worker use Node built-ins pulled in by server deps
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "dist"

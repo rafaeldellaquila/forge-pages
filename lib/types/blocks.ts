@@ -1,0 +1,207 @@
+// Data contract for the `landing_pages.blocks` JSONB array. Every block is
+// discriminated by `type`. Each interface here needs a matching Zod schema in
+// lib/schemas/blocks.ts — the two are edited together (see CLAUDE.md §10).
+
+export type BackgroundType =
+  | 'transparent'
+  | 'solid'
+  | 'gradient'
+  | 'image'
+  | 'fine-line-texture'
+  | 'glass'
+
+export type BackgroundColorToken = 'primary' | 'secondary' | 'custom'
+
+export interface Background {
+  type?: BackgroundType
+  colorToken?: BackgroundColorToken
+  customColor?: string
+  gradientToToken?: BackgroundColorToken
+  gradientToCustom?: string
+  image?: { url: string; alternativeText?: string }
+  effect?: 'none' | 'particles'
+}
+
+export type RenderMode = 'blocks' | 'custom'
+export type LandingPageStatus = 'draft' | 'published' | 'archived'
+export type LeadStatus = 'new' | 'contacted' | 'converted' | 'lost'
+
+export interface LandingPageConfig {
+  id: string
+  clientId: string
+  domain: string
+  renderMode: RenderMode
+  status: LandingPageStatus
+  seoTitle: string | null
+  seoDescription: string | null
+  seoOgImage: string | null
+  canonicalUrl: string | null
+  primaryColor: string | null
+  secondaryColor: string | null
+  fontFamily: string | null
+  secondaryFontFamily: string | null
+  background: Background | null
+  dividerGlyph: string | null
+  blocks: BlockType[]
+}
+
+export interface Lead {
+  id: string
+  landingPageId: string
+  name: string
+  whatsapp: string
+  email: string | null
+  message: string | null
+  intent: string | null
+  utmSource: string | null
+  utmMedium: string | null
+  utmCampaign: string | null
+  status: LeadStatus
+  createdAt: string
+}
+
+export interface LeadInput {
+  name: string
+  whatsapp: string
+  email?: string
+  message?: string
+  intent?: string
+  turnstileToken: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+}
+
+export type HeaderVariant = 'default' | 'centered'
+
+export interface HeaderBlock {
+  type: 'header'
+  variant?: HeaderVariant
+  background?: Background
+  logo?: { url: string; alternativeText?: string }
+  menuLinks: { label: string; url: string }[]
+  ctaLabel: string
+  ctaWhatsapp?: string
+  ctaMessage?: string
+  ctaLink?: string
+}
+
+export type HeroVariant = 'default' | 'centered'
+
+export interface HeroBlock {
+  type: 'hero'
+  variant?: HeroVariant
+  background?: Background
+  badgeText?: string
+  headline: string
+  subheadline: string
+  ctaPrimaryLabel: string
+  ctaPrimaryLink: string
+  ctaSecondaryLabel?: string
+  ctaSecondaryLink?: string
+  image?: { url: string; alternativeText?: string }
+  imageAlt?: string
+}
+
+export interface TrustIconsBlock {
+  type: 'trust-icons'
+  items: { icon: string; text: string }[]
+}
+
+export interface StatsBlock {
+  type: 'stats'
+  items: { number: string; label: string }[]
+}
+
+export interface ValuePropositionBlock {
+  type: 'value-proposition'
+  headline: string
+  text?: string
+  cards: { icon: string; title: string; description: string; stepLabel?: string }[]
+}
+
+export interface ServicesBlock {
+  type: 'services'
+  headline: string
+  tabs: {
+    label: string
+    title: string
+    text: string
+    ctaLabel?: string
+    ctaLink?: string
+    image?: { url: string; alternativeText?: string }
+  }[]
+}
+
+export interface DifferentialsBlock {
+  type: 'differentials'
+  background?: Background
+  headline: string
+  text?: string
+  items: { icon?: string; tag?: string; text: string }[]
+}
+
+export interface TestimonialsBlock {
+  type: 'testimonials'
+  headline: string
+  items: {
+    name: string
+    role?: string
+    photo?: { url: string; alternativeText?: string }
+    text: string
+    rating?: number
+  }[]
+}
+
+export interface CtaFormBlock {
+  type: 'cta-form'
+  headline: string
+  subheadline?: string
+  selectOptions: { label: string; value: string }[]
+  ctaLabel: string
+  whatsappNumber: string
+  whatsappMessage?: string
+}
+
+export interface FooterBlock {
+  type: 'footer'
+  logo?: { url: string; alternativeText?: string }
+  description?: string
+  links: { label: string; url: string }[]
+  phones: { label?: string; number: string }[]
+  schedule?: string
+  socialLinks: { platform: string; url: string }[]
+  copyright: string
+  privacyLink?: string
+}
+
+export interface PricingBlock {
+  type: 'pricing'
+  headline: string
+  subheadline?: string
+  plans: {
+    badge?: string
+    eyebrow?: string
+    title: string
+    description?: string
+    price: string
+    features: { text: string }[]
+    ctaLabel: string
+    ctaLink: string
+    featured?: boolean
+  }[]
+  note?: string
+}
+
+export type BlockType =
+  | HeaderBlock
+  | HeroBlock
+  | TrustIconsBlock
+  | StatsBlock
+  | ValuePropositionBlock
+  | ServicesBlock
+  | DifferentialsBlock
+  | TestimonialsBlock
+  | CtaFormBlock
+  | FooterBlock
+  | PricingBlock

@@ -1,15 +1,15 @@
 ---
 name: onboard-local
-description: Bootstrap and run the forge-pages stack locally. Installs dependencies, boots local Supabase (migrations + seed), generates apps/cms/.env + apps/web/.env, then starts Strapi + Nuxt (+ Storybook) and verifies the app is up. Use when someone wants to set up the project from a clean clone, get everything running locally, or onboard a new developer. Idempotent and non-destructive — safe to re-run.
+description: Bootstrap and run the forge-pages stack locally. Installs dependencies, boots local Supabase (migrations + seed), fills the root .env, then starts the Next.js dev server and verifies a tenant renders. Use when someone wants to set up the project from a clean clone, get everything running locally, or onboard a new developer. Idempotent and non-destructive — safe to re-run.
 ---
 
 # Onboard / run forge-pages locally
 
-Goal: from a clean clone (or a partial setup), get the whole stack running and verified.
+Goal: from a clean clone (or a partial setup), get the app running and verified.
 Full reference: `docs/LOCAL_DEVELOPMENT.md`. This skill automates it.
 
-The bundled `setup.sh` is **idempotent and non-destructive**: it never overwrites existing
-`.env` files and never resets an already-initialized database.
+The bundled `setup.sh` is **idempotent and non-destructive**: it never overwrites values
+already set in the root `.env` and never resets an already-initialized database.
 
 ## Steps
 
@@ -18,51 +18,38 @@ The bundled `setup.sh` is **idempotent and non-destructive**: it never overwrite
    bash .claude/skills/onboard-local/setup.sh
    ```
    It checks Docker, runs `pnpm install`, starts local Supabase, applies migrations + seed
-   (first run only), fills the **root `.env`** (single source of truth — Supabase keys from
-   `supabase status`, Strapi secrets generated; existing values never overwritten) and runs
-   `mise run env:sync` to regenerate `apps/cms/.env` + `apps/web/.env` from it.
+   (first run only), and fills the **root `.env`** (single source of truth — Supabase URL
+   and keys from `supabase status`; existing values never overwritten). There is no
+   per-app env sync: mise auto-loads the root `.env` and Next.js reads it natively.
 
-2. **Start Strapi** in the background and wait for `http://localhost:1337/admin` to answer:
+2. **Start the app** in the background and wait for it to answer on port 3000:
    ```bash
-   mise run dev:cms
-   ```
-   (run it as a background process; poll the log for "Strapi started successfully").
-
-3. **First-run Strapi content** (manual — browser). Tell the user to:
-   - create the admin user at `http://localhost:1337/admin`;
-   - create a **Landing Page** with **`domain` = `localhost`**, add a **Hero** + **CTA Form**
-     block, **Save → Publish**;
-   - **Settings → API Tokens → Create** a **Read-only** token, paste it into the **root
-     `.env`** as `STRAPI_API_TOKEN`, then run `mise run env:sync`.
-   If `STRAPI_API_TOKEN` is still blank in the root `.env`, pause here and ask the user to
-   complete this, since block rendering needs it.
-
-4. **Start the web app** in the background (restart it if it was already running, so it picks
-   up a newly added `STRAPI_API_TOKEN`):
-   ```bash
-   mise run dev:web
+   mise run dev
    ```
 
-5. **(Optional) Storybook**:
+3. **Verify** a seeded tenant renders (the app resolves the tenant from the `Host` header,
+   so a bare `localhost` request has no tenant and 404s):
    ```bash
-   mise run storybook
+   curl -s -H "Host: forgecompany.localhost" http://localhost:3000/ \
+     | grep -oiE '<title>[^<]*</title>'
    ```
+   Seeded local tenants: `forgecompany.localhost`, `forge-motos.localhost`,
+   `clinica.localhost`, `advocacia.localhost`.
 
-6. **Verify** and report the result:
-   ```bash
-   curl -s localhost:3000/api/health          # {"ok":true,...}  (may be :3001 if 3000 was taken)
-   curl -s localhost:3000/                      # should contain the tenant's SEO title + block markup
-   ```
-   Report the live URLs (admin :1337, web :3000/3001, Storybook :6006) and flag anything the
-   user still needs to do (e.g. Strapi token, or that the DB was already initialized).
+4. **Report** the live URLs (app :3000, Supabase Studio :54323) and flag anything the user
+   still needs to do — most commonly: the tenant's `blocks` JSONB array is empty (`[]` is
+   the column default), so the page renders themed but contentless until blocks are added
+   in Studio (`docs/LOCAL_DEVELOPMENT.md` §4).
 
 ## Notes
-- Ports: Supabase API 54321 / DB 54322 / Studio 54323 / Mailpit 54324; Strapi 1337;
-  Nuxt 3000 (→3001 if busy); Storybook 6006.
-- Integrations are optional locally — empty keys mean skipped/no-op (Turnstile off, Upstash
-  skipped, Flipt fails open, PostHog/Sentry off). See `docs/LOCAL_DEVELOPMENT.md` §9.
+- Ports: Supabase API 54321 / DB 54322 / Studio 54323 / Mailpit 54324; Next.js 3000;
+  `mise run preview` (local Workers runtime) 8787.
+- Turnstile is optional locally — empty keys mean the bot check is skipped. The always-pass
+  test pair is `1x00000000000000000000AA` / `1x0000000000000000000000000000000AA`.
+- There is no CMS: page content is the `blocks` JSONB column on `landing_pages`, edited in
+  Supabase Studio. See `docs/LOCAL_DEVELOPMENT.md` §4.
 - To wipe and reseed the DB deliberately: `pnpm exec supabase db reset --workdir infra`
-  (destroys local leads + Strapi content).
-- Env model: root `.env` is the single source of truth; `apps/*/.env` are GENERATED by
-  `mise run env:sync` — never edit them by hand. See `docs/SECRETS.md`.
+  (destroys local leads and any block edits made in Studio).
+- Env model: root `.env` is the single source of truth — see `docs/SECRETS.md`. Restart the
+  dev server after editing it.
 - Never commit `.env` files — they are gitignored.

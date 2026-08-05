@@ -44,13 +44,13 @@ jobs:
             --print \
             "You are reviewing a pull request for the forge-pages project.
 
-            Read CLAUDE.md first, then review the following diff against the project conventions:
+            Read .claude/CLAUDE.md first, then review the following diff against the project conventions:
             - TypeScript strict (no any)
             - Biome formatting
             - Security checklist (if new endpoint or form)
-            - packages/types updated if new data contracts
+            - lib/types/blocks.ts and lib/schemas/blocks.ts updated together if new data contracts
             - Conventional Commits format
-            - No secrets in code
+            - No secrets in code, nothing sensitive behind a NEXT_PUBLIC_ prefix
             - No console.log in app code
 
             Output a brief review with: APPROVED or NEEDS_CHANGES, followed by specific comments.

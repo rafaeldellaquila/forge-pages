@@ -1,14 +1,15 @@
 # 2. Block layout variants as a property, and the Figma naming contract
 
-Date: 2026-07-21
+Date: 2026-07-21 (v2: 2026-08-04 — Vue/Strapi → React/Supabase JSONB, see ADR-0007; the
+`variant`-as-property concept and the Figma naming contract are unchanged)
 Status: Accepted
 
 ## Context
 
-Every block type currently renders exactly one layout: `__component` maps 1:1 to a Vue
-component in `blockComponentMap`. Selling landing pages to many clients requires offering
-several layouts for the same block — a Hero with the image on the right, a centered Hero,
-a full-bleed Hero — without changing what a Hero *is*.
+Every block type currently renders exactly one layout: a block's `type` maps 1:1 to a
+React component in `blockComponentMap`. Selling landing pages to many clients requires
+offering several layouts for the same block — a Hero with the image on the right, a
+centered Hero, a full-bleed Hero — without changing what a Hero *is*.
 
 Layouts will be designed in Figma and translated to code. That translation is the part
 that decides whether this scales: without a fixed contract between the two, every new
@@ -19,8 +20,9 @@ Two forces shape the decision:
 1. **Multi-tenant theming.** Brand colors are per-client CSS custom properties
    (`--tenant-primary`, `--tenant-secondary`, `--tenant-font`), injected per request from
    `landing_pages`. Nothing brand-colored may be hardcoded.
-2. **Content and code deploy independently.** Strapi content is edited by non-technical
-   partners; a variant can be selected in the CMS before the code that renders it exists.
+2. **Content and code can drift.** Blocks live as JSON in `landing_pages.blocks`, edited
+   directly via Supabase Studio; a variant can be set in the data before the code that
+   renders it exists — Zod validation at fetch time must fall back gracefully, not throw.
 
 ## Decision
 
@@ -33,16 +35,16 @@ purely presentational: same fields in, different arrangement out.
 export type HeroVariant = 'default' | 'centered' | 'full-bleed'
 
 export interface HeroBlock {
-  __component: 'blocks.hero'
+  type: 'hero'
   variant?: HeroVariant
   headline: string
   // …unchanged
 }
 ```
 
-Rejected alternative: one Strapi component per layout (`blocks.hero-centered`). It makes
-switching layouts destroy the editor's content, turns `BlockType` into a union of near
-duplicate interfaces, and multiplies the Strapi schema by the number of layouts.
+Rejected alternative: one block `type` per layout (`hero-centered`). It makes switching
+layouts destroy the editor's content, turns the block union into near-duplicate
+interfaces, and multiplies the Zod schema by the number of layouts.
 
 **When to break this rule**: if a layout needs a field the others cannot use (a Hero with
 video needs `videoUrl`), and that field does not fit as an optional addition to the shared
@@ -100,31 +102,32 @@ no test and throws no error.
 
 ### 5. Code Connect is an optional reinforcement, gated by the Figma plan
 
-Code Connect maps each Component Set to its Vue component and its properties to props, so
-the design reads as "this component already exists, called this way" instead of being
+Code Connect maps each Component Set to its React component and its properties to props,
+so the design reads as "this component already exists, called this way" instead of being
 reconstructed from pixels. It requires a Figma Dev/Full seat on an Organization or
 Enterprise plan — unavailable on the current Starter plan, including over the MCP.
 
 While the plan is Starter, the naming contract (rules 1–3) is the operative translation
-mechanism: it already makes the Figma→Vue mapping mechanical on its own. When a paid seat
-exists, add a `.figma.ts` per Component Set and publish it as reinforcement — it is not a
-prerequisite for designing variants.
+mechanism: it already makes the Figma→React mapping mechanical on its own. When a paid
+seat exists, add a `.figma.ts` per Component Set and publish it as reinforcement — it is
+not a prerequisite for designing variants.
 
 ## Consequences
 
-- `packages/types`: each block interface gains `variant?: <Block>Variant` and exports the
-  union. Additive and optional — no existing consumer breaks.
-- `apps/cms`: each block schema gains an `enumeration` attribute `variant`, surfaced to
-  editors as a dropdown. This alters component tables in Postgres.
-- `packages/ui`: blocks with more than one layout move into a per-block directory
-  (`blocks/hero/HeroDefault.vue`, `HeroCentered.vue`, …). Blocks with a single layout stay
+- `lib/types/blocks.ts`: each block interface gains `variant?: <Block>Variant` and exports
+  the union. Additive and optional — no existing consumer breaks.
+- `lib/schemas/blocks.ts`: each block's Zod schema gains `variant: z.enum([...]).optional()`
+  — an unrecognized value must fall back to `default` in the resolver, not fail `safeParse`
+  for the whole page.
+- `components/blocks/`: blocks with more than one layout move into a per-block directory
+  (`blocks/hero/HeroDefault.tsx`, `HeroCentered.tsx`, …). Blocks with a single layout stay
   flat until they gain a second — the directory is created when it earns its keep.
-- `apps/web`: `blockComponentMap` becomes a two-level lookup keyed by UID then variant,
-  with the `default` fallback in rule 2.
-- Storybook gains one story per variant and becomes the review surface for comparing a
-  built variant against its Figma frame.
-- Adding a layout after this is: Figma variant → Vue file → TS union member → Strapi enum
-  value (+ a `.figma.ts` entry once Code Connect is available). Mechanical steps, no
-  schema redesign.
+- `blockComponentMap` (in `app/`) becomes a two-level lookup keyed by block `type` then
+  `variant`, with the `default` fallback in rule 2.
+- Storybook (if reintroduced) gains one story per variant and becomes the review surface
+  for comparing a built variant against its Figma frame.
+- Adding a layout after this is: Figma variant → React component file → TS union member →
+  Zod enum value (+ a `.figma.ts` entry once Code Connect is available). Mechanical steps,
+  no schema redesign.
 - Figma Variables must exist before the first variant is designed, otherwise rule 4 has
   nothing to bind to.
