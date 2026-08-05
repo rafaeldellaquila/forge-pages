@@ -54,6 +54,7 @@
       "!**/out",
       "!**/.wrangler",
       "!**/next-env.d.ts",
+      "!public",
       "!supabase",
       "!.claude"
     ]

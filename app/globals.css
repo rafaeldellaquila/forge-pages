@@ -1,10 +1,77 @@
 @import "tailwindcss";
 
+/*
+ * Tenant variables are set per request as inline styles on <html> by
+ * app/layout.tsx. The values here are the fallbacks used when no tenant is
+ * resolved (the 404 page) — nothing brand-coloured may be hardcoded anywhere
+ * else (ADR-0002 rule 4).
+ */
 :root {
   --tenant-primary: #171717;
   --tenant-secondary: #ededed;
+  --tenant-background: #ffffff;
+  --tenant-font: ui-sans-serif, system-ui, sans-serif;
+  --tenant-font-secondary: ui-monospace, monospace;
+}
+
+/*
+ * Neutrals do not vary per tenant today, so they may be literal (ADR-0002 rule
+ * 4 permits it). They are tuned for a dark surface, which is what the only
+ * tenant with content currently uses.
+ *
+ * KNOWN GAP: a light tenant needs a different neutral ramp. Revisit in Fase 3,
+ * when the second and third tenants get real content.
+ */
+@theme {
+  --color-surface: #2b2116;
+  --color-surface-line: #3d3123;
+  --color-ink: #f3eadb;
+  --color-ink-dim: #c9bfac;
+  --color-ink-muted: #9c9184;
+
+  --color-tenant-primary: var(--tenant-primary);
+  --color-tenant-secondary: var(--tenant-secondary);
+  --color-tenant-background: var(--tenant-background);
+
+  --font-tenant: var(--tenant-font);
+  --font-tenant-secondary: var(--tenant-font-secondary);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--tenant-primary);
+  font-family: var(--tenant-font);
+  color: var(--color-ink);
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--tenant-font);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 0.9;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* `!important` is the point here: this must override animations declared by
+     utility classes and inline styles alike, which is the one case where the
+     escape hatch is the correct tool. */
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: a reduced-motion kill switch has to win over every other declaration */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: a reduced-motion kill switch has to win over every other declaration */
+    transition: none !important;
+  }
 }

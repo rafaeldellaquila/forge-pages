@@ -67,14 +67,21 @@ forge-pages/
 
 ```
 Visitor → Cloudflare (SSL) → Workers (Next.js, OpenNext)
-  → proxy.ts
-    → query Supabase: SELECT * FROM landing_pages WHERE domain = host
-    → if not found: return 404
-    → inject tenant context (x-tenant-host header)
-  → app/page.tsx (Server Component) → render blocks array
+  → middleware.ts  (edge; NOT proxy.ts — see §12)
+    → strip port from Host → inject x-tenant-host header
+  → app/layout.tsx + app/page.tsx (Server Components)
+    → getCurrentTenant() → getLandingPageByHost(host), wrapped in React cache()
+      → SELECT … FROM landing_pages WHERE domain = host AND status = 'published'
+      → publishable key (RLS already scopes anon to published rows)
+    → no row: notFound()
+    → layout: tenant CSS vars + fonts + generateMetadata; page: render blocks
 ```
 
-**Caching**: ISR is emulated by OpenNext via stale-while-revalidate (not native to Workers). The Next.js ISR cache key does **not** include the `Host` header — mitigate with explicit per-tenant revalidation rather than a bare `revalidate: N` on the root page (see `.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1).
+The middleware deliberately does **not** query Supabase: the page needs the same row for
+its blocks, so querying twice (or serialising the row into a header) buys nothing and puts
+the Supabase client in the edge bundle. One `cache()`d query serves layout and page (ADR-0008).
+
+**Caching**: ISR is emulated by OpenNext via stale-while-revalidate (not native to Workers). The Next.js ISR cache key does **not** include the `Host` header. Reading `headers()` keeps both root segments dynamic (`next build` reports `/` as `ƒ`), so the collision cannot occur today — **adding `revalidate` to the root page reintroduces it** and needs a per-tenant cache key first (see `.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1).
 
 ## 5. Database Schema (Supabase / PostgreSQL)
 
@@ -109,6 +116,10 @@ status ('new'|'contacted'|'converted'|'lost'), created_at
 ## 6. Block Types (JSON, Zod-validated)
 
 Blocks live in `landing_pages.blocks` (JSONB array). Each block type has a TypeScript interface in `lib/types/blocks.ts` and a matching Zod schema in `lib/schemas/blocks.ts`. An unrecognized `variant` falls back to `default` (ADR-0002); a failed schema on the whole page fails loudly in the Server Component rather than rendering silently broken.
+
+**`anchorId?: string`** (ADR-0008) on the in-flow block types (`hero`, `value-proposition`, `differentials`, `pricing`, `cta-form`) is the block's fragment target for in-page nav. It is data, never a literal in a component — the same block type appears more than once per page and each occurrence needs its own anchor. Types whose components arrive in Fase 3 gain the field with them.
+
+**Components exist for 7 of the 11 types.** Zod validates all eleven; `BlockRenderer` maps `header`, `hero`, `value-proposition`, `differentials`, `pricing`, `cta-form`, `footer`. A valid but unmapped type renders nothing rather than breaking the page. `trust-icons`, `stats`, `services` and `testimonials` get components in Fase 3.
 
 | Block `type`        | Key fields                                                                                          |
 | -------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -190,7 +201,7 @@ Apply to every new endpoint, form, or database operation:
 
 **MVP rewrite phases** (`.claude/docs/MVP_REWRITE_CONTEXT.md`):
 - [x] Fase 0 — Reset repo, infra, docs — completed 2026-08-04. Next.js 16.3.0 + React 19.2.8 + Tailwind 4.3.3 + Zod 4.4.3; flat app at root, monorepo gone. Verified: `biome check` + `tsc --noEmit` clean, `next build` and `opennextjs-cloudflare build` pass, tenant resolution by `Host` header confirmed on **both** `next dev` (:3000) and `wrangler dev` (:8787, real workerd) including port stripping. Supabase local + cloud (`ofpnglnnzpowlzsyfbit`) migrated: `blocks jsonb` added, `strapi` schema + `webhook_retries` + retry cron + lead webhook dropped, anon/authenticated grants restored to least privilege. Not yet built (Fase 1+): `lib/schemas/blocks.ts`, `lib/supabase.ts`, `lib/background.ts`, `components/blocks/*`, `app/api/leads/` — `app/page.tsx` is still a stub that prints the resolved tenant host.
-- [ ] Fase 1 — Core multi-tenant + Forge Company real content
+- [x] Fase 1 — Core multi-tenant + Forge Company real content — completed 2026-08-05. Built `lib/supabase.ts` (cached `getLandingPageByHost`, publishable key), `lib/tenant.ts`, `lib/schemas/blocks.ts` (Zod for all 11 types), `lib/background.ts`, `lib/fonts.ts`; `app/layout.tsx` injects tenant CSS vars + fonts + `generateMetadata`, `app/page.tsx` renders blocks, `app/not-found.tsx` handles an unclaimed host. 7 block components + `BlockRenderer` + shared `Section`/`Seam`/`Eyebrow`/`CtaButton`/`MobileMenu`/`BackgroundParticles`. Forge Company's page ported from `forge_company_apresentacao.html` into the seed as 8 blocks; brand SVGs in `public/brand/`. Architecture decisions in ADR-0008. Verified: `biome check` + `tsc --noEmit` clean; all 4 seeded tenants resolve and an unknown host 404s on **both** `next dev` (:3000) and `wrangler dev` (:8787, real workerd), including static asset serving; bogus `variant` falls back to `default` (HTTP 200), a malformed block 500s naming the exact path (`blocks.4.plans.0.price`); layout measured over CDP (doc height 4329px, 8 blocks, all 6 anchors resolve). Not yet built (Fase 2+): `app/api/leads/`, the real lead form, `trust-icons`/`stats`/`services`/`testimonials` components.
 - [ ] Fase 2 — Lead capture (form → Supabase)
 - [ ] Fase 3 — Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`)
 - [ ] Fase 4 — Deploy (Cloudflare Workers, 3 domains live)
@@ -198,17 +209,6 @@ Apply to every new endpoint, form, or database operation:
 
 ## 12. Learnings
 
-Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (2026-07-08 → 2026-08-04) are archived in `docs/HISTORY.md` — several entries (Supabase key model, Turnstile/Cloudflare token validation, mise/tera quirks) remain true and useful even after the rewrite.
+Per-phase learnings live in `.claude/rules/learnings.md` (Fase 0 and Fase 1 recorded there). Read it before touching the render path, the Cloudflare build, or the block system — it holds the traps that cost time.
 
-### 2026-08-04: Fase 0 — repo reset to Next.js 16 + Cloudflare Workers
-
-- **Keep `middleware.ts`; do NOT migrate to Next 16's `proxy.ts`.** `next build` prints a deprecation warning telling you to switch, and switching passes `next build` — then fails `opennextjs-cloudflare build` with "Node.js middleware is not currently supported." `proxy.ts` is hardwired to the Node.js runtime (Next *throws* on a route segment config in a proxy file), and OpenNext/Cloudflare only supports Edge middleware. Next's own v16 upgrade guide says to stay on `middleware` if you need edge. The warning is a trap for this deploy target; `middleware.ts` carries a comment saying so.
-- **`Headers.set()` returns `void`**, so it can't be chained off the constructor — `new Headers(h).set(...)` fails with `TS2322: Type 'void' is not assignable to type 'Headers | undefined'`. Assign, then mutate. (The original snippet in `.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` had this bug; it's corrected there now.)
-- **Verify on the Workers runtime, not just `next dev`.** `next build` succeeding proves nothing about Workers — the middleware constraint above only surfaces in `opennextjs-cloudflare build`, and only `wrangler dev` exercises workerd. Both are part of the verification loop.
-- **Tenant assertions need `<!-- -->` tolerance**: React emits an HTML comment between static text and an interpolated value, so `grep "Tenant host: [^<]*"` finds nothing. Match `Tenant host: <!-- -->[^<]*` (or read the RSC payload).
-- **Cloud grant drift is real and RLS masks it.** `supabase db diff --linked` found `anon` *and* `authenticated` holding SELECT/INSERT/UPDATE/DELETE on all three tables, far beyond what the RLS migration grants. RLS was still blocking it (no matching anon policy), so nothing was exploitable — but table grants are the second layer and must not be wider than the policies. Fixed in `20260804000001_revoke_anon_write_grants.sql`, which also does `alter default privileges ... revoke` so new tables don't reintroduce it. **Run `supabase db diff --linked` after any cloud push** — `db push` reporting success does not mean cloud matches the migrations.
-- **Guess a function name in a DROP and it silently no-ops.** The lead webhook trigger function was `on_new_lead_webhook()`, not the `notify_new_lead()` a migration guessed, so the function outlived its trigger. `drop ... if exists` reports success either way; confirm the real name (via `db diff` or `pg_proc`) before trusting the drop.
-- **Always pass `--workdir infra` to `supabase`.** Without it the CLI creates a stray `./supabase/` at the repo root and links the project there (now gitignored, and the `db:migrate` task hardcodes the flag). `supabase db execute` does not exist in CLI 2.111 — seeding goes through `db reset`, driven by `config.toml`'s `[db.seed] sql_paths`.
-- **Next 16 writes root `AGENTS.md` + `CLAUDE.md` on every `next dev`** (`agentRules`), containing its own "this is NOT the Next.js you know" guardrail. Kept deliberately — that block is exactly the warning that the `middleware`/`proxy` trap above needed. The project's own instructions stay in `.claude/CLAUDE.md`; set `agentRules: false` in `next.config.ts` if the duplication ever becomes a problem.
-- **`pnpm run lint` fails in this environment via the rtk hook** (misroutes to eslint: `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL, Command "eslint" not found`). The script is `biome check .` and is fine — run `rtk proxy pnpm run lint` or `pnpm exec biome check .`.
-- **pnpm 11 build allowlist** moved to `pnpm-workspace.yaml`'s `allowBuilds` (kept even with no workspace packages): `esbuild` and `workerd` need `true`, set via `pnpm approve-builds --all`.
+Historical learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (2026-07-08 → 2026-08-04) are archived in `docs/HISTORY.md` — several entries (Supabase key model, Turnstile/Cloudflare token validation, mise/tera quirks) remain true after the rewrite.
