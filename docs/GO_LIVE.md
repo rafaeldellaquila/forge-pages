@@ -36,8 +36,8 @@ resolving. Everything else is config / hardening / ops.
 Context: the company exists — domain **forgecompany.example.com** (registro.br, DNS on
 Cloudflare, Google Workspace). `admin@forgecompany.example.com` (alias of `contato@`) is the
 registration email for all infra; `contato@` is the public/reply address. Cloudflare and
-GitHub are registered under `admin@`. Everything that had been created on a personal
-account was recreated — no key reused; the personal-account keys get revoked in Fase D.
+GitHub are registered under `admin@`. Every account and key in use was created fresh under
+`admin@` — nothing was carried over or reused.
 
 Decisions taken (2026-07-20): Supabase = **new project from scratch** (not a transfer);
 environments = **local dev / cloud prod** (no second cloud project); envs = root `.env`
@@ -49,11 +49,10 @@ single source + `docs/SECRETS.md` matrix.
 - [x] **Fase B — new accounts + keys** (all registered under `admin@`) — **complete
       2026-07-20**. Of the services provisioned then, these are still part of the stack:
   - [x] **Supabase — done 2026-07-20.** Org "Forge Company" (`tnacbzhyknaylpljhktv`) →
-        project **`ofpnglnnzpowlzsyfbit`** (`forge-pages`, sa-east-1, PG17). Migrations
-        pushed with RLS on all tables; legacy JWT keys disabled (publishable/secret keys
-        only). Prod URL/keys are staged in the root `.env` `PROD_*` section (→ GitHub
-        secrets in Fase C). The old personal project `wsfteewohhchwewwxnpn` still needs
-        deleting (Fase D).
+        project **`ofpnglnnzpowlzsyfbit`** (`forge-pages`, sa-east-1, PG17) — the single
+        cloud project this repo targets. Migrations pushed with RLS on all tables; legacy
+        JWT keys disabled (publishable/secret keys only). Prod URL/keys live in the root
+        `.env` `PROD_*` section and are mirrored into the GitHub secrets.
   - [x] **Cloudflare — done 2026-07-20.** Account already `admin@`. Prod **Turnstile**
         widget live (real site/secret keys replaced the `1x…` test pair; siteverify with a
         dummy token returns `invalid-input-response`, i.e. the secret resolves). An API
@@ -71,12 +70,11 @@ single source + `docs/SECRETS.md` matrix.
         workflow reads one (`GITHUB_TOKEN` is auto-injected and covers checkout/PR
         comments/releases). The existing personal PAT stays for local automation. Only
         revisit if a workflow ever needs to trigger another workflow.
-- [ ] **Fase C — prod wiring** *(next)*: reconcile the GitHub secrets with the current
-      stack (§2 below), deploy to Cloudflare Workers, activate workflows, branch
-      protection.
-- [ ] **Fase D — revocation**: revoke every personal-account key (the `OLD_*` section in
-      the root `.env` lists the pending ones — delete the section when done), delete the
-      old Supabase project `wsfteewohhchwewwxnpn`, close/detach personal accounts.
+- [x] **GitHub secrets reconciled — done 2026-08-04.** The 11 secrets now match exactly
+      what the workflows read, all pointing at `ofpnglnnzpowlzsyfbit`. Secrets for retired
+      services were deleted, and `NUXT_PUBLIC_*` was renamed to `NEXT_PUBLIC_*`.
+- [ ] **Fase C — prod wiring** *(next)*: deploy to Cloudflare Workers, activate the
+      workflows, turn on branch protection.
 - [x] GitHub org renamed `forge-co-tech` → **`forgecompany-tech`** (2026-07-20); local
       remotes updated. GitHub redirects the old name, but re-check any webhook or
       integration that pins the old slug.
@@ -95,15 +93,14 @@ single source + `docs/SECRETS.md` matrix.
   paid-traffic launch.
 
 ### 2. GitHub repo config
-- [ ] **Reconcile repo secrets with the current stack.** The 15 secrets configured on
-  2026-07-20 were named for the Nuxt/Strapi stack. Required now (`.github/SETUP.md`):
-  `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`,
-  `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SITE_URL`, `TURNSTILE_SECRET_KEY`,
-  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-  (+ `ANTHROPIC_API_KEY`, optional). Every value must be the Forge Company one.
-  - The `NUXT_PUBLIC_*` secrets are renamed to `NEXT_PUBLIC_*`.
-  - Secrets for retired services (`STRAPI_*`, `UPSTASH_*`, `*_POSTHOG_*`, `SENTRY_*`,
-    `FLIPT_*`) can be deleted.
+- [x] **Repo secrets reconciled — 2026-08-04.** Exactly 11, matching what the workflows
+  read (`.github/SETUP.md`): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+  `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SITE_URL`,
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CLOUDFLARE_API_TOKEN`,
+  `CLOUDFLARE_ACCOUNT_ID`, `ANTHROPIC_API_KEY` (optional — `claude-review.yml` stays
+  `workflow_dispatch`-only). Every Supabase value points at `ofpnglnnzpowlzsyfbit`.
+  - `NEXT_PUBLIC_SITE_URL` is set to `https://forgecompany.example.com`, **not** the local value
+    the root `.env` carries for dev.
 - [ ] **Activate workflows** — uncomment the `on:` triggers in `.github/workflows/`
   `build.yml`, `deploy.yml`, `backup.yml` (`ci.yml` is already active). Merging a change
   under `.github/workflows/` needs the `workflow` scope — use the `gh` CLI with the

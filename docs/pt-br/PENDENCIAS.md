@@ -26,7 +26,7 @@ MVP respondendo. O resto é configuração / robustez / operação.
 
 | Fase | Foco | Situação |
 |---|---|---|
-| 0 | Reset do repositório, infra e documentação | em andamento |
+| 0 | Reset do repositório, infra e documentação | concluída |
 | 1 | Multi-tenant + conteúdo real da Forge Company | a fazer |
 | 2 | Captação de lead (formulário → Supabase) | a fazer |
 | 3 | Segundo/terceiro cliente (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`) | a fazer |
@@ -45,13 +45,10 @@ MVP respondendo. O resto é configuração / robustez / operação.
   A única proteção do formulário é o Turnstile. Rever antes de investir em tráfego pago.
 
 ### 2. Configuração do repositório no GitHub
-- [ ] **Ajustar os segredos (secrets)** — os 15 segredos configurados em 20/07/2026 tinham
-  nomes do sistema antigo. Os necessários hoje (ver `.github/SETUP.md`): `SUPABASE_URL`,
-  `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`,
-  `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SITE_URL`, `TURNSTILE_SECRET_KEY`,
-  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
-  (+ `ANTHROPIC_API_KEY`, opcional). Os antigos `NUXT_PUBLIC_*` viram `NEXT_PUBLIC_*`; os de
-  serviços que saíram podem ser apagados.
+- [x] **Segredos (secrets) ajustados — 04/08/2026.** São 11, exatamente os que os workflows
+  usam (ver `.github/SETUP.md`), todos apontando para o projeto Supabase da empresa
+  (`ofpnglnnzpowlzsyfbit`). Os `NUXT_PUBLIC_*` viraram `NEXT_PUBLIC_*` e os de serviços que
+  saíram foram apagados.
 - [ ] **Ativar os workflows** — descomentar os gatilhos `on:` em `.github/workflows/`
   (`build.yml`, `deploy.yml`, `backup.yml`). O `ci.yml` já está ativo.
 - [ ] **Proteção do branch `main`** — exigir PR + 1 aprovação; descartar aprovações antigas
@@ -74,17 +71,13 @@ MVP respondendo. O resto é configuração / robustez / operação.
 - [ ] Confirmar que os leads aparecem no **Supabase Studio** do projeto de produção,
   filtrados por `landing_page_id`.
 
-### 5. Encerrar a conta pessoal (Fase D da migração)
-- [ ] Revogar todas as chaves da conta pessoal (a seção `OLD_*` do `.env` da raiz lista as
-  pendentes) e apagar o projeto Supabase antigo.
-
 ---
 
 ## Prioridade sugerida
 
 1. Terminar as Fases 0–2 (site multi-tenant renderizando + captação de lead).
-2. Ajustar segredos, ativar workflows e proteção de branch (item 2) — rápido.
+2. Ativar workflows e proteção de branch (item 2) — rápido.
 3. Publicar na Cloudflare Workers com os 3 domínios (item 3).
-4. Visibilidade (item 4) e encerramento da conta pessoal (item 5).
+4. Visibilidade (item 4).
 
 > Referência técnica completa (inglês): `docs/GO_LIVE.md`.
