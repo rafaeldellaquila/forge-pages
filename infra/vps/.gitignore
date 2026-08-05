@@ -1,5 +1,0 @@
-# Real env with secrets lives only on the VM (same pattern as the root .env).
-forge-services.env
-
-# Cloudflare Tunnel credentials (per-tunnel JSON) — created on the VM, never committed.
-cloudflared/credentials/
