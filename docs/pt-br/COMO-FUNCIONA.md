@@ -36,17 +36,17 @@ Tudo gira em torno do **endereço (domínio)** que a pessoa digitou:
 ## As peças do sistema (em palavras simples)
 
 - **O site** — a parte que o visitante vê. É quem recebe o acesso e monta a página.
-- **O painel de conteúdo (CMS)** — onde se escreve e edita os textos, imagens e seções de
-  cada página, sem precisar mexer em programação. É como um "editor de site".
 - **Os blocos** — a página é montada como peças de Lego: um bloco de destaque (topo), um de
   benefícios, um de depoimentos, um de formulário, um de rodapé, etc. Dá para combinar as
   peças de formas diferentes para cada cliente.
-- **O banco de dados** — o "arquivo" que guarda os clientes e os contatos recebidos (leads),
-  de forma organizada e segura.
-- **As notificações** — quando alguém preenche o formulário, o sistema **avisa
-  automaticamente** por e-mail e por WhatsApp.
-- **A gestão de leads** — um painel simples onde parceiros não-técnicos acompanham os
-  contatos recebidos (novo, em atendimento, convertido, perdido).
+- **O banco de dados** — o "arquivo" central. Guarda três coisas: os clientes, o
+  **conteúdo** de cada página (a lista de blocos, os textos e as cores) e os contatos
+  recebidos (leads). Tudo de forma organizada e segura.
+- **O painel do banco** — a tela onde se edita o conteúdo de cada página e se acompanham os
+  contatos recebidos. É a mesma ferramenta para as duas coisas, sem precisar de programação
+  para o dia a dia.
+- **As estatísticas de visitas** — quantas pessoas acessaram cada página, por domínio, sem
+  usar cookies de rastreamento (logo, sem aviso de cookies chato para o visitante).
 
 ---
 
@@ -54,10 +54,9 @@ Tudo gira em torno do **endereço (domínio)** que a pessoa digitou:
 
 ```
 Visitante preenche o formulário na página
-   → o sistema confere que não é um robô e evita envios repetidos (proteção contra abuso)
+   → o sistema confere que não é um robô
    → o contato é salvo com segurança no banco de dados
-   → o time do cliente é avisado na hora (e-mail + WhatsApp)
-   → o contato aparece no painel de gestão para ser atendido
+   → o contato fica disponível no painel, separado por cliente, para ser atendido
 ```
 
 ---
@@ -66,16 +65,17 @@ Visitante preenche o formulário na página
 
 - **Escala fácil:** cadastrar um cliente novo é adicionar seus dados e conteúdo — não é
   construir um site novo.
-- **Rápido para o visitante:** as páginas são pré-preparadas e servidas com agilidade.
-- **Seguro:** os dados dos contatos ficam protegidos, com proteção contra robôs e abuso, e
-  seguindo boas práticas de privacidade (LGPD).
-- **Fácil de manter:** quem cuida do conteúdo usa um painel visual; quem cuida dos leads usa
-  outro painel — cada um no seu lugar, sem depender de programador para o dia a dia.
+- **Rápido para o visitante:** as páginas são servidas de servidores espalhados pelo mundo,
+  próximos de quem acessa.
+- **Simples de operar:** um sistema só, uma ferramenta só para conteúdo e leads — menos
+  peças para manter e menos custo fixo.
+- **Seguro:** os dados dos contatos ficam protegidos, com proteção contra robôs, e seguindo
+  boas práticas de privacidade (LGPD).
 
 ---
 
 ## Em uma frase
 
 > O forge-pages é um "prédio" único e inteligente que entrega, para cada cliente, uma
-> página sob medida no endereço dele, captura os interessados e avisa o time na hora —
-> tudo de forma automática e organizada.
+> página sob medida no endereço dele e captura os interessados — tudo de forma automática e
+> organizada.

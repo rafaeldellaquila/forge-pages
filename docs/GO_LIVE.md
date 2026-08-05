@@ -1,223 +1,170 @@
 # forge-pages — Go-Live / Remaining Work
 
-> Snapshot: **2026-07-20**. Living checklist of what's left before onboarding the first
+> Snapshot: **2026-08-04**. Living checklist of what's left before onboarding the first
 > paying client, plus notes to resume in a fresh session. Update as items are completed.
 
 ---
 
 ## Where the project stands
 
-- All 6 build phases are complete and merged to `main`.
-- Local dev is fully working: 3 demo tenants on `*.localhost`, fully styled, lead capture
-  E2E. Bootstrap with `bash .claude/skills/onboard-local/setup.sh` (or the `onboard-local`
-  skill), then `cd apps/cms && node scripts/seed-content.cjs` for published content.
-- 15 GitHub Actions **repo secrets are configured** (see below).
-- Root `.env` cleaned (dead keys removed, naming fixed).
+- **MVP rewrite in progress (ADR-0007)**: Next.js 16 + React 19 + Supabase JSONB blocks +
+  Cloudflare Workers. The previous Nuxt/Strapi/NocoDB/observability/VPS stack was dropped
+  — anything below that looks like it "vanished" is explained in
+  `docs/adr/0007-drop-strapi-nocodb-observability-vps.md` and `docs/HISTORY.md`.
+- Local dev bootstraps with `bash .claude/skills/onboard-local/setup.sh` (or the
+  `onboard-local` skill), then `mise run dev`.
+- Company account migration Fases A + B are complete (below); Fase C (prod wiring) is next.
 
-**True blockers to go live:** deploying the web app (Cloudflare Pages) and hosting Strapi
-so the CMS is reachable in production. Everything else is config / hardening / ops.
+**True blocker to go live:** deploying to Cloudflare Workers with the three MVP domains
+resolving. Everything else is config / hardening / ops.
 
----
+### MVP phases (`.claude/docs/MVP_REWRITE_CONTEXT.md`)
 
-## Done recently (context for next session)
-
-- Multi-tenant local demo: `infra/supabase/seed/{01_clients,02_landing_pages}.sql` (3
-  tenants) + `apps/cms/scripts/seed-content.cjs` (idempotent, Document Service, publishes;
-  **replaces** each domain on run). Onboarding guide: `docs/ADD_CLIENT.md`.
-- Tailwind fix: `packages/config/tailwind.css` has `@source "../ui/src"` so block
-  utilities in `@forge-pages/ui` are generated (they were being dropped).
-- Dependabot PRs #5/#6/#7 + feature PR #8 merged.
-- `.env` cleanup: removed `DOMAINEE_API_KEY`, `STRAPI_API_TOKEN_READ_ONLY`,
-  `NUXT_SECRET_KEY`, and the unused/broken Cloudflare **R2** keys; renamed
-  `UPSTASH_API_TOKEN`→`UPSTASH_REDIS_REST_TOKEN` and `CLOUD_FLARE_*`→`CLOUDFLARE_*`.
-- Repo secrets set (15): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
-  `SUPABASE_DB_PASSWORD`, `STRAPI_API_TOKEN`, `UPSTASH_REDIS_REST_URL`,
-  `UPSTASH_REDIS_REST_TOKEN`, `TURNSTILE_SECRET_KEY`, `NUXT_PUBLIC_TURNSTILE_SITE_KEY`,
-  `NUXT_PUBLIC_POSTHOG_KEY`, `NUXT_PUBLIC_POSTHOG_HOST`, `NUXT_PUBLIC_SENTRY_DSN`,
-  `SENTRY_AUTH_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`.
-  **All 15 hold personal-account values — every one gets replaced during the company
-  migration (Fase C below).**
-- **2026-07-20 — env management reorganized (migration Fase A)**: root `.env` is the
-  single source of truth, `mise run env:sync` regenerates `apps/*/.env`, matrix in
-  `docs/SECRETS.md`, per-app `.env.example` files removed, root `.env.example` rewritten.
+| Fase | Focus | Status |
+|---|---|---|
+| 0 | Reset repo, infra, docs | in progress |
+| 1 | Core multi-tenant + Forge Company real content | pending |
+| 2 | Lead capture (form → Supabase) | pending |
+| 3 | Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`) | pending |
+| 4 | Deploy (Cloudflare Workers, 3 domains live) | pending |
+| 5 | Visibility (Supabase Studio + Cloudflare Web Analytics) | pending |
 
 ---
 
 ## Company account migration (Forge Company)
 
-Context: the company now exists — domain **forgecompany.example.com** (registro.br, DNS on
+Context: the company exists — domain **forgecompany.example.com** (registro.br, DNS on
 Cloudflare, Google Workspace). `admin@forgecompany.example.com` (alias of `contato@`) is the
 registration email for all infra; `contato@` is the public/reply address. Cloudflare and
-GitHub are already registered under `admin@`. **Everything else is on a personal account
-and must be recreated — no key is reused; all current keys get revoked at the end.**
+GitHub are registered under `admin@`. Everything that had been created on a personal
+account was recreated — no key reused; the personal-account keys get revoked in Fase D.
 
 Decisions taken (2026-07-20): Supabase = **new project from scratch** (not a transfer);
 environments = **local dev / cloud prod** (no second cloud project); envs = root `.env`
 single source + `docs/SECRETS.md` matrix.
 
-- [x] **Fase A — repo**: env reorg (done 2026-07-20, see above).
+- [x] **Fase A — repo**: env management reorganized; the root `.env` is the single source
+      of truth and the matrix lives in `docs/SECRETS.md`. (The `env:sync` fan-out that
+      existed at the time died with the monorepo — Next.js reads the root `.env` natively.)
 - [x] **Fase B — new accounts + keys** (all registered under `admin@`) — **complete
-      2026-07-20**; every credential below re-issued and live-verified. Only `WHATSAPP_*`
-      remains empty (Fase E) and the GitHub PAT was deliberately not rotated.
-  - [x] **Supabase — done 2026-07-20.** Org "Forge Company"
-        (`tnacbzhyknaylpljhktv`) → project **`ofpnglnnzpowlzsyfbit`** (`forge-pages`,
-        sa-east-1, PG17). 4 migrations pushed (RLS on all tables), Edge Function
-        `handle-lead-webhook` deployed (`verify_jwt=false`), Vault (`project_url`,
-        `secret_key`), Database Webhook replaced by a SQL trigger `on_new_lead` on
-        `leads` (reads the secret from Vault — no key hardcoded), retry cron active,
-        legacy JWT keys disabled. **E2E verified**: lead insert → trigger → pg_net →
-        function `200 {"ok":true}` → Resend email delivered → no `webhook_retries`.
-        Prod URL/keys stored in the root `.env` `PROD_*` section (→ GitHub secrets in
-        Fase C). **Caveat**: `WHATSAPP_*` not set (channel dormant, Fase E). Old personal
-        project `wsfteewohhchwewwxnpn` still needs deleting (Fase D).
-  - [x] **Resend — done 2026-07-20.** Send subdomain `send.forgecompany.example.com` added
-        in Resend and **verified** (DKIM + MX + SPF, DNS on Cloudflare; keeps root-domain
-        SPF/MX intact for Google Workspace). New sending-only API key
-        (`re_…`, restricted — can send but not list). Three function secrets re-set on
-        `ofpnglnnzpowlzsyfbit`: `RESEND_API_KEY`, `RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`,
-        `RESEND_NOTIFICATION_EMAIL=contato@forgecompany.example.com`. **E2E verified**: lead
-        insert (publishable key) → trigger → function `200 {"ok":true}` → no
-        `webhook_retries`; direct invoke also `200`, real email delivered to `contato@`.
-  - [x] **PostHog — done 2026-07-20.** New project under `admin@`; `phc_…` key +
-        `https://us.i.posthog.com`. Verified: capture endpoint returns `{"status":"Ok"}`.
-  - [x] **Sentry — done 2026-07-20.** New org **`forge-company`** (US region) + project
-        `forge-pages`; `sentry.sourceMapsUploadOptions.org` in `apps/web/nuxt.config.ts`
-        updated from `forge-co-tech`. DSN (new org id, distinct from the old
-        `o4511700188069888`) in `NUXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN`;
-        **Organization Token** (`sntrys_…`, from Settings → Developer Settings →
-        Organization Tokens) in `SENTRY_AUTH_TOKEN`. Verified: test envelope accepted
-        (`200`), and `sentry-cli releases -o forge-company -p forge-pages list` exits 0
-        (exits 1 on a bogus project) — source-map upload will authenticate.
-  - [x] **Upstash — done 2026-07-20.** New account → Redis; REST URL/token verified
-        (`PING` → `PONG`).
+      2026-07-20**. Of the services provisioned then, these are still part of the stack:
+  - [x] **Supabase — done 2026-07-20.** Org "Forge Company" (`tnacbzhyknaylpljhktv`) →
+        project **`ofpnglnnzpowlzsyfbit`** (`forge-pages`, sa-east-1, PG17). Migrations
+        pushed with RLS on all tables; legacy JWT keys disabled (publishable/secret keys
+        only). Prod URL/keys are staged in the root `.env` `PROD_*` section (→ GitHub
+        secrets in Fase C). The old personal project `wsfteewohhchwewwxnpn` still needs
+        deleting (Fase D).
+  - [x] **Cloudflare — done 2026-07-20.** Account already `admin@`. Prod **Turnstile**
+        widget live (real site/secret keys replaced the `1x…` test pair; siteverify with a
+        dummy token returns `invalid-input-response`, i.e. the secret resolves). An API
+        token was verified against an account endpoint — note an account-scoped token
+        **401s** on `/user/tokens/verify` (that endpoint is user-scoped), so check it
+        against `/accounts/{id}/…` instead. **The token's scope still needs re-checking
+        for Workers** (see Remaining work §3).
   - [x] **Anthropic — done 2026-07-20.** Key under `admin@` in `ANTHROPIC_API_KEY`
-        (verified against `GET /v1/models`). **Not wired to CI**: `claude-review.yml`
-        keeps its `pull_request` trigger commented (`workflow_dispatch` only) — user
-        decision to avoid per-PR API spend, `/code-review` locally covers it. The secret
-        is therefore optional in Fase C.
-  - [x] **Cloudflare — done 2026-07-20.** Account already `admin@`. Prod Turnstile
-        widget live (real site/secret keys replaced the `1x…` test pair; siteverify with
-        a dummy token returns `invalid-input-response`, i.e. the secret resolves).
-        Pages-scoped API token verified against
-        `/accounts/{id}/pages/projects` (`200`, empty — no Pages project until Fase C).
-        Note: an account-scoped token **401s** on `/user/tokens/verify` (that endpoint is
-        user-scoped) — check it against an account endpoint instead.
+        (verified against `GET /v1/models`, which bills no tokens). **Not wired to CI**:
+        `claude-review.yml` keeps its `pull_request` trigger commented — user decision to
+        avoid per-PR API spend, `/code-review` locally covers it. The secret is therefore
+        **optional** in Fase C.
   - [x] **GitHub — done 2026-07-20.** Org billing email = `admin@`. **PAT not rotated**
         (user decision): GitHub has no org-level PAT — every PAT is personal — and no
         workflow reads one (`GITHUB_TOKEN` is auto-injected and covers checkout/PR
         comments/releases). The existing personal PAT stays for local automation. Only
         revisit if a workflow ever needs to trigger another workflow.
-- [ ] **Fase C — prod wiring** *(next)*: replace all 15 GitHub secrets + add the missing
-      4 (`STRAPI_URL`, `SUPABASE_DB_HOST`, `FLIPT_URL`, `FLIPT_TOKEN` when they exist);
-      `ANTHROPIC_API_KEY` is optional while `claude-review.yml` stays manual-only.
-      Cloudflare Pages deploy; activate workflows; branch protection; UptimeRobot
-      (under `admin@`).
+- [ ] **Fase C — prod wiring** *(next)*: reconcile the GitHub secrets with the current
+      stack (§2 below), deploy to Cloudflare Workers, activate workflows, branch
+      protection.
 - [ ] **Fase D — revocation**: revoke every personal-account key (the `OLD_*` section in
       the root `.env` lists the pending ones — delete the section when done), delete the
-      old Supabase project, close/detach personal accounts.
-- [ ] **Fase E (parallel, slow)** — WhatsApp Cloud API under a Forge Company Meta
-      Business Manager (needs CNPJ business verification; channel stays dormant until
-      then).
+      old Supabase project `wsfteewohhchwewwxnpn`, close/detach personal accounts.
 - [x] GitHub org renamed `forge-co-tech` → **`forgecompany-tech`** (2026-07-20); local
-      remotes updated. GitHub redirects the old name, but re-check webhooks/integrations
-      that pin the old slug. The Sentry org slug is unrelated and was replaced separately
-      in Fase B (`forge-co-tech` → `forge-company` in `apps/web/nuxt.config.ts`; check
-      `.claude/AGENTS.md` still matches).
+      remotes updated. GitHub redirects the old name, but re-check any webhook or
+      integration that pins the old slug.
 - Open (non-blocking): registro.br ownership CPF → CNPJ.
 
 ---
 
 ## Remaining work
 
-### 1. Security — mostly done
-- [x] Removed stray `sk_live_` (Domainee) key and cleaned `.env`.
+### 1. Security
 - [x] GitHub PAT tightened to Contents/PRs/Workflows/Actions R/W.
 - [ ] *(optional)* Add **Secrets: R/W** to the fine-grained PAT if you want the `github`
   MCP tool / PAT to manage repo secrets (it currently can't; `gh` CLI auth was used).
+- [ ] **Rate limiting is a known gap** — deferred with the rest of the observability stack
+  (ADR-0007). Turnstile is the only protection on `POST /api/leads`. Revisit before any
+  paid-traffic launch.
 
 ### 2. GitHub repo config
-- [x] Repo secrets added (15 — list above).
-- [ ] Add the **5 still-missing secrets** once their services exist: `ANTHROPIC_API_KEY`
-  (CI PR review), `STRAPI_URL` (prod Strapi), `SUPABASE_DB_HOST` (backup pg_dump),
-  `FLIPT_URL`, `FLIPT_TOKEN`.
+- [ ] **Reconcile repo secrets with the current stack.** The 15 secrets configured on
+  2026-07-20 were named for the Nuxt/Strapi stack. Required now (`.github/SETUP.md`):
+  `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`,
+  `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SITE_URL`, `TURNSTILE_SECRET_KEY`,
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+  (+ `ANTHROPIC_API_KEY`, optional). Every value must be the Forge Company one.
+  - The `NUXT_PUBLIC_*` secrets are renamed to `NEXT_PUBLIC_*`.
+  - Secrets for retired services (`STRAPI_*`, `UPSTASH_*`, `*_POSTHOG_*`, `SENTRY_*`,
+    `FLIPT_*`) can be deleted.
 - [ ] **Activate workflows** — uncomment the `on:` triggers in `.github/workflows/`
-  `ci.yml`, `build.yml`, `claude-review.yml`, `backup.yml` (currently
-  `workflow_dispatch`-only). Needs the `workflow` OAuth scope to merge — use the `gh`
-  CLI with the fine-grained PAT via `GH_TOKEN`, or the web UI.
+  `build.yml`, `deploy.yml`, `backup.yml` (`ci.yml` is already active). Merging a change
+  under `.github/workflows/` needs the `workflow` scope — use the `gh` CLI with the
+  fine-grained PAT via `GH_TOKEN`, or the web UI.
 - [ ] **Branch protection** on `main` (Settings → Branches → Add rule):
-  require PR + 1 approval; dismiss stale approvals; require status checks
-  (add `Lint & Typecheck` **after** `ci.yml` has run once); require up-to-date branches;
-  no bypass. Record applied settings in `.github/SETUP.md`.
+  require PR + 1 approval; dismiss stale approvals; require the `Lint & Typecheck` status
+  check; require up-to-date branches; no bypass. Record applied settings in
+  `.github/SETUP.md`.
 
-### 3. Deploy web app — Cloudflare Pages *(blocker)*
-- [ ] First deploy: `pnpm --filter web deploy:cloudflare` (or activate `deploy.yml`).
-- [ ] **Verify `CLOUDFLARE_API_TOKEN` is scoped for Pages/Workers deploy** — the current
-  value is a `cfat_…` token that may be R2-only; if deploy 403s, mint a token with
-  *Cloudflare Pages: Edit* and update the secret + `.env`.
-- [ ] Verify Sentry **server** SDK on the Workers runtime (`nodejs_compat`); switch to
-  `@sentry/cloudflare` if it misbehaves (noted in `docs/LOCAL_DEVELOPMENT.md §12`).
-- [ ] Per-client **custom hostname** + SSL via Cloudflare for SaaS (see ADR 0001 &
-  `docs/ADD_CLIENT.md`).
+### 3. Deploy — Cloudflare Workers *(blocker)*
+- [ ] First deploy: `pnpm run deploy` (`opennextjs-cloudflare build && wrangler deploy`),
+  or activate `deploy.yml`.
+- [ ] **Verify `CLOUDFLARE_API_TOKEN` is scoped for Workers deploy** — the value was
+  minted for Pages; if `wrangler deploy` 403s, mint a token with *Workers Scripts: Edit*
+  and update the secret + `.env`.
+- [ ] Run `mise run preview` (local Workers runtime) before deploying — Workers-runtime
+  problems surface there and not under `next dev`. Watch for `next/image` gaps and the
+  emulated ISR cache key (`.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1–2).
+- [ ] Plan B if OpenNext debugging exceeds ~1 day: **Vercel Pro** (ADR-0001) — deliberate,
+  not improvised.
+- [ ] Per-client **custom hostname** + SSL via Cloudflare for SaaS for the three MVP
+  domains: `forgecompany.example.com`, `dellaquila.dev`,
+  `imobiliaria.forgecompany.example.com` (see ADR-0001 & `docs/ADD_CLIENT.md`).
 
-### 4. Always-on services — VPS + Cloudflare Tunnel + Access *(Strapi is a blocker)*
-Host decided (ADR 0003): one **AWS Lightsail São Paulo 2 GB** VPS runs Strapi + NocoDB +
-Flipt via Docker Compose (`infra/vps/`), fronted by Cloudflare Tunnel (no public ports) and
-gated by Cloudflare Access. **Full step-by-step runbook: `infra/vps/README.md`.**
-- [ ] Provision the Lightsail VM (swap + Docker + SSH-only firewall) — README Step 1.
-- [ ] Fill `infra/vps/forge-services.env` on the VM: fresh Strapi secrets, prod
-  `DATABASE_URL` (currently local Supabase PG), `SUPABASE_S3_*`, `NC_AUTH_JWT_SECRET` — Step 3.
-  Strapi must be reachable in prod or pages render with theme but no blocks.
-- [ ] Create the Cloudflare Tunnel + `cms./db./flags.forgecompany.example.com` DNS routes — Step 4.
-- [ ] Add a Cloudflare Access application per hostname (policy: `@forgecompany.example.com`) — Step 5.
-- [ ] Deploy + verify (Step 6–7); set `STRAPI_URL`/`FLIPT_URL` to the tunnel hostnames.
-  Nuxt→Strapi server calls behind Access need an Access **service token** (see README Step 7).
-- Fallback if Lightsail trial/credits run out: Oracle Always Free (if A1 capacity frees up)
-  or Fly.io `gru`/Cloudflare Containers — same compose, both rejected as primary (ADR 0003).
-
-### 5. Activate parked integrations (wired, currently no-op)
-- [x] **Turnstile** — real site/secret keys in the root `.env` (test `1x…` pair gone);
-  secret validated via siteverify. Run `mise run env:sync` after any further edit.
-- [x] **Sentry** — DSN + org token set and validated (org `forge-company`, project
-  `forge-pages`); test envelope accepted. Still to confirm in prod: a real error lands
-  after deploy, and the **server** SDK works on the Workers runtime (see §3).
-- [x] **PostHog** — key validated (capture → `Ok`). Still to confirm: Live Events after
-  deploy.
-- [x] **Resend** — sender domain `send.forgecompany.example.com` verified; function secrets
-  set (`RESEND_FROM_EMAIL=leads@send.forgecompany.example.com`). Live send confirmed.
-- [ ] **WhatsApp** — set `WHATSAPP_*` secrets in Supabase (channel dormant until then).
-
-### 6. Manual dashboards
-- [ ] **UptimeRobot** monitors (web + Strapi).
-- [ ] **NocoDB** partner workspace (after §4).
-- [ ] **Cloudflare** custom hostnames per client at onboarding.
+### 4. Visibility
+- [ ] Enable **Cloudflare Web Analytics** per hostname in the Cloudflare dashboard
+  (zero-config, no env var, no cookie banner).
+- [ ] Confirm leads are readable in **Supabase Studio** on the prod project, filtered by
+  `landing_page_id`.
 
 ---
 
 ## Gotchas / operational notes
 
-- **Restart `dev:web` after editing `apps/web/.env`** — Nuxt bakes `runtimeConfig` at
-  startup; a stale server throws `supabaseUrl is required`.
-- **Root `.env` is the single source of truth** (gitignored): edit it, then
-  `mise run env:sync` regenerates `apps/web/.env` + `apps/cms/.env` (GENERATED — never
-  edit by hand). mise auto-loads the root `.env` for tasks and the activated shell.
-  Matrix: `docs/SECRETS.md`.
-- **Strapi 5 REST creates drafts only** — seed *published* content via the Document
-  Service script (`apps/cms/scripts/seed-content.cjs`), which must be `.cjs`.
-- **Local multi-tenant test:** open `http://forge-motos.localhost:3001`,
-  `clinica.localhost:3001`, `advocacia.localhost:3001`; `unknown.localhost:3001` → 404.
+- **Restart the dev server after editing the root `.env`** — env values are read at process
+  start. `NEXT_PUBLIC_*` values are inlined at build time, so a changed one needs a rebuild
+  for `mise run preview` / `mise run build`, not just a restart.
+- **Root `.env` is the single source of truth** (gitignored): mise auto-loads it for tasks
+  and the activated shell, and Next.js reads it natively from the project root. Keep values
+  bare — no quotes, no inline `#` comments. Matrix: `docs/SECRETS.md`.
+- **Supabase CLI always needs `--workdir infra`** — `infra/supabase/config.toml` is where
+  the config lives. `supabase login` needs a TTY; set `SUPABASE_ACCESS_TOKEN` in the root
+  `.env` instead (mise loads it, so CLI + Management API calls authenticate headlessly).
+- **Local multi-tenant test:** open `http://forgecompany.localhost:3000`,
+  `forge-motos.localhost:3000`, `clinica.localhost:3000`, `advocacia.localhost:3000`;
+  `unknown.localhost:3000` → 404.
 - **Merging PRs that touch `.github/workflows/`** needs the `workflow` scope — the
-  fine-grained PAT has it (`GH_TOKEN=<pat> gh pr merge …`); the interactive `gh` login
-  does not. Conversely, **setting secrets** needs the interactive `gh` login (classic
-  `repo` scope); the fine-grained PAT lacks the Secrets permission.
+  fine-grained PAT has it (`GH_TOKEN=<pat> gh pr merge …`); the interactive `gh` login does
+  not. Conversely, **setting secrets** needs the interactive `gh` login (classic `repo`
+  scope); the fine-grained PAT lacks the Secrets permission.
+- **zsh globs unquoted URLs** — always quote a URL with a query string in a shell command.
 
 ---
 
 ## Resume prompt (paste in a new session)
 
 ```
-Read .claude/CLAUDE.md and docs/GO_LIVE.md in full. We're past all 6 build phases;
-local dev + multi-tenant demo work and 15 GitHub repo secrets are set. Continue the
-Go-Live checklist. Next up: <pick one — "activate GitHub workflows + branch protection"
-| "deploy the web app to Cloudflare Pages" | "decide Strapi production hosting">.
+Read .claude/CLAUDE.md, .claude/docs/MVP_REWRITE_CONTEXT.md and docs/GO_LIVE.md in full.
+We're mid MVP rewrite (ADR-0007): Next.js 16 + Supabase JSONB blocks + Cloudflare Workers.
+Continue from the current Fase. Next up: <pick one — "finish Fase 0/1 (multi-tenant render
++ Forge Company content)" | "reconcile GitHub secrets + activate workflows + branch
+protection" | "first deploy to Cloudflare Workers">.
 Ask before commits and before installing dependencies; branch + PR for any commit.
 ```

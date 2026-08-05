@@ -7,26 +7,32 @@
 
 ## MCP Servers (Claude Code / VS Code)
 
+Committed config: `.mcp.json` at the repo root (four servers, no tokens inlined).
+
 ### Supabase MCP
-Allows Claude to read the live database schema, generate migrations, and validate queries against real table structures.
+Allows Claude to read the live database schema, generate migrations, and validate queries
+against real table structures.
 
 ```json
 {
   "mcpServers": {
-      "supabase": {
+    "supabase": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=<your-project-ref>",
-    },
+      "url": "https://mcp.supabase.com/mcp"
+    }
   }
 }
 ```
 
-**Use when**: generating migrations, reviewing RLS policies, validating schema consistency between `packages/types` and actual DB.
+**Use when**: generating migrations, reviewing RLS policies, inspecting or editing
+`landing_pages.blocks` JSON, validating schema consistency between `lib/types/blocks.ts`
+and the actual DB.
 
 ---
 
 ### GitHub MCP
-Allows Claude to open PRs, read issues, post review comments, and check workflow run status directly.
+Allows Claude to open PRs, read issues, post review comments, and check workflow run status
+directly.
 
 ```json
 {
@@ -47,7 +53,9 @@ Allows Claude to open PRs, read issues, post review comments, and check workflow
 ---
 
 ### Context7 MCP
-Fetches up-to-date documentation for Nuxt 4, Strapi 5, Tailwind CSS v4, Supabase, and other stack dependencies. Critical because Tailwind 4 and Strapi 5 are recent releases that may differ from training data.
+Fetches up-to-date documentation for Next.js 16, React 19, Tailwind CSS v4, Zod 4,
+`@opennextjs/cloudflare`, and Supabase. Critical because Next 16 / Tailwind 4 / OpenNext
+are recent releases that may differ from training data.
 
 ```json
 {
@@ -60,35 +68,15 @@ Fetches up-to-date documentation for Nuxt 4, Strapi 5, Tailwind CSS v4, Supabase
 }
 ```
 
-**Use when**: implementing anything with Tailwind 4 syntax, Strapi 5 APIs, or Nuxt 4 server routes. Always prefer Context7 docs over training data for these.
-
----
-
-### Sentry MCP
-Allows Claude to fetch recent error events, read stack traces, and suggest fixes without leaving the terminal.
-
-```json
-{
-  "mcpServers": {
-    "sentry": {
-      "command": "npx",
-      "args": ["-y", "@sentry/mcp-server"],
-      "env": {
-        "SENTRY_AUTH_TOKEN": "<from Sentry settings>",
-        "SENTRY_ORG": "forge-company",
-        "SENTRY_PROJECT": "forge-pages"
-      }
-    }
-  }
-}
-```
-
-**Use when**: debugging production errors. Never `console.log` — check Sentry first.
+**Use when**: implementing anything with App Router conventions, Tailwind 4 syntax,
+Server/Client Component boundaries, or the OpenNext Cloudflare adapter. Always prefer
+Context7 docs over training data for these.
 
 ---
 
 ### Playwright MCP
-Allows Claude to open a real browser and test form submissions, block rendering, and multi-tenant routing against a running local dev server.
+Allows Claude to open a real browser and test form submissions, block rendering, and
+multi-tenant routing against a running local dev server.
 
 ```json
 {
@@ -101,30 +89,8 @@ Allows Claude to open a real browser and test form submissions, block rendering,
 }
 ```
 
-**Use when**: validating that a new block renders correctly, testing the lead form flow end-to-end, checking tenant resolution for a specific domain.
-
----
-
-### Strapi MCP
-Allows Claude to read and manage Strapi content (landing pages, blocks) directly — exposes the Content API surface allowed by the admin token's permissions (read-only or full CRUD/publish). Bridged via `mcp-remote` since Strapi's native MCP endpoint (`config/server.ts` → `mcp.enabled: true`) speaks HTTP, not stdio.
-
-```json
-{
-  "mcpServers": {
-    "strapi-mcp": {
-      "command": "npx",
-      "args": [
-        "-y", "mcp-remote", "http://localhost:1337/mcp",
-        "--header", "Authorization: Bearer ${STRAPI_MCP_ADMIN_TOKEN:-}"
-      ]
-    }
-  }
-}
-```
-
-Token comes from Strapi admin → Settings → Admin tokens (not a Content API token — MCP requires an Admin token). Set `STRAPI_MCP_ADMIN_TOKEN` in the root `.env`; mise loads it into the shell so `${STRAPI_MCP_ADMIN_TOKEN}` expands when Claude Code launches the server.
-
-**Use when**: seeding or editing landing page content, inspecting live block data, without leaving the terminal.
+**Use when**: validating that a new block renders correctly, testing the lead form flow
+end-to-end, checking tenant resolution for a specific `*.localhost` domain.
 
 ---
 
@@ -138,14 +104,13 @@ Add MCP configs to `.vscode/mcp.json` (gitignored — never commit tokens):
     "supabase": { ... },
     "github": { ... },
     "context7": { ... },
-    "sentry": { ... },
-    "playwright": { ... },
-    "strapi-mcp": { ... }
+    "playwright": { ... }
   }
 }
 ```
 
-Add `.vscode/mcp.json` to `.gitignore`. Commit `.vscode/mcp.json.example` with empty token values.
+`.vscode/mcp.json` is in `.gitignore`; `.vscode/mcp.json.example` is committed with empty
+token values.
 
 ---
 
@@ -157,21 +122,21 @@ Defined in `.mise.toml`. Run with `mise run <task>`.
 
 | Task | Command | Description |
 |---|---|---|
-| `dev` | `mise run dev` | Start all apps in dev mode (web + cms) |
-| `dev:web` | `mise run dev:web` | Start Nuxt only |
-| `dev:cms` | `mise run dev:cms` | Start Strapi only |
-| `gen:block <name>` | `mise run gen:block hero` | Scaffold new block: Vue component + Story + Type |
-| `gen:migration <name>` | `mise run gen:migration add_column` | Generate timestamped SQL migration file |
+| `dev` | `mise run dev` | Start the Next.js dev server (port 3000) |
+| `preview` | `mise run preview` | OpenNext build + local Workers runtime (port 8787) |
+| `lint` | `mise run lint` | Biome check |
+| `lint:fix` | `mise run lint:fix` | Biome check with auto-fix |
+| `typecheck` | `mise run typecheck` | `tsc --noEmit` |
+| `build` | `mise run build` | `next build` |
+| `build:cloudflare` | `mise run build:cloudflare` | Build for Cloudflare Workers via OpenNext |
 | `db:migrate` | `mise run db:migrate` | Apply pending migrations to Supabase (asks for confirmation) |
 | `db:seed` | `mise run db:seed` | Run seed data for development |
-| `db:backup` | `mise run db:backup` | Manual pg_dump to local file |
-| `lint` | `mise run lint` | Run Biome check on all packages |
-| `lint:fix` | `mise run lint:fix` | Run Biome check --apply |
-| `typecheck` | `mise run typecheck` | Run tsc --noEmit on all packages |
-| `storybook` | `mise run storybook` | Start Storybook for packages/ui |
-| `build:ui` | `mise run build:ui` | Build packages/ui |
-| `changeset` | `mise run changeset` | Create a new changeset entry |
-| `release` | `mise run release` | Version packages and generate changelog |
+| `db:backup` | `mise run db:backup` | Manual pg_dump to local `backups/` |
+| `gen:migration <name>` | `mise run gen:migration add_column` | Generate timestamped SQL migration file |
+| `gen:block <name>` | `mise run gen:block pricing` | Scaffold a React block component |
+
+Deploy is a package script, not a mise task: `pnpm run deploy`
+(`opennextjs-cloudflare build && wrangler deploy`).
 
 ---
 
@@ -179,14 +144,12 @@ Defined in `.mise.toml`. Run with `mise run <task>`.
 
 When you run `mise run gen:block <name>`, the script:
 
-1. Reads the existing `HeroBlock.vue` as a reference template
-2. Creates `packages/ui/src/blocks/<Name>Block.vue` following the same pattern
-3. Creates `packages/ui/src/blocks/<Name>Block.stories.ts`
-4. Creates `packages/types/src/blocks/<name>.ts` with a typed interface
-5. Appends the export to `packages/types/src/index.ts`
-6. Prints the Strapi component schema to copy into the admin
-
-**Reference block**: Always use `HeroBlock.vue` as the canonical example for new blocks.
+1. Converts the kebab-case name to PascalCase
+2. Creates `components/blocks/<Name>Block.tsx` with a typed stub (skipped if it exists)
+3. Prints the follow-up steps it does **not** do automatically:
+   - add the `<Name>Block` interface to `lib/types/blocks.ts` (+ the `BlockType` union)
+   - add its Zod schema to `lib/schemas/blocks.ts`
+   - register it in the `blockComponentMap`
 
 ---
 
@@ -194,48 +157,24 @@ When you run `mise run gen:block <name>`, the script:
 
 When you run `mise run gen:migration <name>`:
 
-1. Reads the latest migration file to understand current schema state
-2. Creates `infra/supabase/migrations/<timestamp>_<name>.sql`
-3. Includes the migration SQL (UP only — Supabase migrations are irreversible)
-4. Prints a reminder to review RLS policies if new tables are created
+1. Creates `infra/supabase/migrations/<timestamp>_<name>.sql` with a header stub
+2. UP only — Supabase migrations are irreversible, there is no DOWN
+3. Prints a reminder to add RLS policies for new tables and to update
+   `lib/types/blocks.ts` if new data contracts are introduced
 
 ---
 
-## GitHub Actions (Phase 6 — currently disabled)
+## GitHub Actions
 
-All workflows use `on: workflow_dispatch` until explicitly activated.
+Most workflows are **inactive** (`on: workflow_dispatch`); their real triggers are present
+but commented out. `ci.yml` is the exception — it runs on push and PR. Secrets reference:
+`.github/SETUP.md`.
 
-| Workflow | File | Trigger (when activated) |
+| Workflow | File | Trigger |
 |---|---|---|
-| CI — Lint + Typecheck | `ci.yml` | Push to any branch |
-| CI — Build check | `build.yml` | PR to main |
-| Backup — pg_dump | `backup.yml` | Daily cron 03:00 UTC |
-| Dependabot security PRs | `dependabot.yml` | Weekly |
-| Claude PR Review | `claude-review.yml` | PR opened (manual trigger for now) |
-
----
-
-## Flipt Feature Flags
-
-Config: `infra/flipt/feature-flags.yaml`
-SDK: `@flipt-io/flipt` in both `apps/web` and `apps/cms`
-
-### Flag naming convention
-`<scope>.<feature>` — e.g.:
-- `blocks.services-tabs` — enable services block with tabs variant
-- `notifications.whatsapp` — enable WhatsApp notifications
-- `analytics.posthog` — enable PostHog tracking
-
-### Usage in Nuxt (server-side only)
-```ts
-import { FliptClient } from '@flipt-io/flipt'
-
-const flipt = new FliptClient({ url: process.env.FLIPT_URL })
-const enabled = await flipt.evaluation.boolean({
-  flagKey: 'blocks.services-tabs',
-  entityId: tenantId,
-  context: {}
-})
-```
-
-Feature flags are **never** evaluated client-side to avoid key exposure.
+| CI — Lint + Typecheck | `ci.yml` | **active** — push to any branch, PR to `main` |
+| CI — Build check | `build.yml` | inactive (`pull_request` to `main` when activated) |
+| Deploy — Cloudflare Workers | `deploy.yml` | inactive (`push` to `main` when activated) |
+| Backup — pg_dump | `backup.yml` | inactive (daily cron 03:00 UTC when activated) |
+| Dependabot | `dependabot.yml` | weekly (npm + github-actions) |
+| Claude PR Review | `claude-review.yml` | manual only — deliberately kept off to avoid per-PR API spend |

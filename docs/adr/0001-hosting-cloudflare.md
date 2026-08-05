@@ -1,6 +1,6 @@
 # 1. Web hosting on Cloudflare; Koyeb and Domainee dropped
 
-Date: 2026-07-09
+Date: 2026-07-09 (v2: 2026-08-04 — framework changed from Nuxt/Nitro to Next.js/OpenNext, see ADR-0007)
 Status: Accepted
 
 ## Context
@@ -15,14 +15,25 @@ deployment:
    account — and its only job (per-domain SSL) overlaps with functionality Cloudflare
    already provides for free.
 
-The product is a multi-tenant SaaS: one Nuxt app serving many client domains, each needing
+The product is a multi-tenant SaaS: one app serving many client domains, each needing
 SSL. Bot protection is already **Cloudflare Turnstile**, so Cloudflare is in the stack.
+
+**2026-08-04 update**: the frontend framework changed from Nuxt 4 to Next.js 16 (ADR-0007
+— MVP rewrite, Vue/Strapi dropped). This ADR's hosting decision (Cloudflare, Domainee
+dropped) is unchanged; only the build adapter differs — Nitro's `cloudflare` preset
+doesn't apply to Next.js, so the equivalent is `@opennextjs/cloudflare` (1.20.2), which
+builds to `.open-next/` and deploys via `wrangler.jsonc` + `wrangler deploy`. See
+`.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §2 for the verified setup.
 
 ## Decision
 
-- **Web app (Nuxt 4) → Cloudflare Workers/Pages** via Nitro's `cloudflare` preset. Free,
+- **Web app (Next.js 16) → Cloudflare Workers** via `@opennextjs/cloudflare`. Free,
   commercial use permitted, global edge, and **Cloudflare for SaaS** provisions SSL for
   each client custom hostname at no cost.
+- **Vercel Pro (R$ 110/mo) is the documented Plan B**: if `next/image`/ISR gaps on
+  Workers cost more than ~1 day of debugging, switch without guilt — landing pages are
+  mostly static, so this is expected to be a non-issue, but the fallback is deliberate,
+  not improvised.
 - **Drop Domainee** entirely. Cloudflare for SaaS custom hostnames replaces it. The
   Phase 5 Domainee code (`server/utils/domainee.ts`, `server/api/admin/domains.post.ts`,
   `adminApiToken`) is removed.
@@ -35,11 +46,13 @@ SSL. Bot protection is already **Cloudflare Turnstile**, so Cloudflare is in the
 
 ## Consequences
 
-- Nitro build target becomes `cloudflare` for production (`nuxt.config` preset or
-  `NITRO_PRESET=cloudflare` at deploy). ISR/route rules map to Cloudflare cache.
+- Build target is `npx opennextjs-cloudflare build` (produces `.open-next/`) + `wrangler
+  deploy`, replacing the retired Nitro `cloudflare` preset. ISR is emulated via
+  stale-while-revalidate (not native) — acceptable for landing pages, revisit if traffic
+  ever demands persistent KV/R2 incremental cache.
 - Custom-domain onboarding uses the Cloudflare for SaaS API instead of Domainee (to be
   wired when the first client is onboarded).
-- Strapi/Flipt/NocoDB remain local-only until a paid host is chosen; the app degrades
-  gracefully without them (Flipt fails open; Strapi content is fetched server-side).
+- Strapi/Flipt/NocoDB/VPS are dropped entirely, not deferred — see
+  ADR-0007. Content lives in Supabase JSONB instead.
 - Turnstile + hosting + SSL are consolidated under one Cloudflare account.
 - Secrets/config that referenced Koyeb/Domainee are removed from the repo.

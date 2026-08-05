@@ -1,9 +1,8 @@
 {
   "mcpServers": {
     "supabase": {
-      "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest"],
-      "env": { "SUPABASE_ACCESS_TOKEN": "<your token here>" }
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp"
     },
     "github": {
       "command": "npx",
@@ -14,28 +13,9 @@
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"]
     },
-    "sentry": {
-      "command": "npx",
-      "args": ["-y", "@sentry/mcp-server"],
-      "env": {
-        "SENTRY_AUTH_TOKEN": "<your token here>",
-        "SENTRY_ORG": "forge-company",
-        "SENTRY_PROJECT": "forge-pages"
-      }
-    },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp"]
-    },
-    "strapi-mcp": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "http://localhost:1337/mcp",
-        "--header",
-        "Authorization: Bearer <your token here>"
-      ]
     }
   }
 }
