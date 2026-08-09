@@ -1,6 +1,6 @@
 # forge-pages — Go-Live / Remaining Work
 
-> Snapshot: **2026-08-04**. Living checklist of what's left before onboarding the first
+> Snapshot: **2026-08-05**. Living checklist of what's left before onboarding the first
 > paying client, plus notes to resume in a fresh session. Update as items are completed.
 
 ---
@@ -13,20 +13,22 @@
   `docs/adr/0007-drop-strapi-nocodb-observability-vps.md` and `docs/HISTORY.md`.
 - Local dev bootstraps with `bash .claude/skills/onboard-local/setup.sh` (or the
   `onboard-local` skill), then `mise run dev`.
-- Company account migration Fases A + B are complete (below); Fase C (prod wiring) is next.
+- Company account migration Fases A + B are complete (below); Fase C (prod wiring) is in
+  progress — see §2/§3 below and `.claude/rules/phase-history.md`'s Fase 4 entry for the
+  detailed, continuously-updated record.
 
 **True blocker to go live:** deploying to Cloudflare Workers with the three MVP domains
-resolving. Everything else is config / hardening / ops.
+resolving, each with a real WhatsApp number. Everything else is config / hardening / ops.
 
 ### MVP phases (`.claude/docs/MVP_REWRITE_CONTEXT.md`)
 
 | Fase | Focus | Status |
 |---|---|---|
-| 0 | Reset repo, infra, docs | in progress |
-| 1 | Core multi-tenant + Forge Company real content | pending |
-| 2 | Lead capture (form → Supabase) | pending |
-| 3 | Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`) | pending |
-| 4 | Deploy (Cloudflare Workers, 3 domains live) | pending |
+| 0 | Reset repo, infra, docs | done 2026-08-04 |
+| 1 | Core multi-tenant + Forge Company real content | done 2026-08-05 |
+| 2 | Lead capture (form → Supabase) | done 2026-08-05 |
+| 3 | Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`) | done 2026-08-05 |
+| 4 | Deploy (Cloudflare Workers, 3 domains live) | in progress |
 | 5 | Visibility (Supabase Studio + Cloudflare Web Analytics) | pending |
 
 ---
@@ -93,37 +95,71 @@ single source + `docs/SECRETS.md` matrix.
   paid-traffic launch.
 
 ### 2. GitHub repo config
-- [x] **Repo secrets reconciled — 2026-08-04.** Exactly 11, matching what the workflows
+- [x] **Repo secrets reconciled — 2026-08-04.** Matching what the workflows
   read (`.github/SETUP.md`): `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-  `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SITE_URL`,
+  `SUPABASE_SECRET_KEY`, `SUPABASE_DB_HOST`, `SUPABASE_DB_PASSWORD`,
   `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CLOUDFLARE_API_TOKEN`,
   `CLOUDFLARE_ACCOUNT_ID`, `ANTHROPIC_API_KEY` (optional — `claude-review.yml` stays
   `workflow_dispatch`-only). Every Supabase value points at `ofpnglnnzpowlzsyfbit`.
-  - `NEXT_PUBLIC_SITE_URL` is set to `https://forgecompany.example.com`, **not** the local value
-    the root `.env` carries for dev.
+  Confirmed via `gh secret list` on 2026-08-05: all still present.
+  - `NEXT_PUBLIC_SITE_URL` was removed 2026-08-05 (repo files + the GitHub secret) —
+    grepping the app found zero consumers; canonical URLs already come from the
+    per-tenant `landing_pages.canonical_url` column (`app/layout.tsx`'s
+    `generateMetadata`), which is the only correct source in a multi-tenant-by-domain
+    app — there is no single "the site" URL to hold.
 - [ ] **Activate workflows** — uncomment the `on:` triggers in `.github/workflows/`
   `build.yml`, `deploy.yml`, `backup.yml` (`ci.yml` is already active). Merging a change
   under `.github/workflows/` needs the `workflow` scope — use the `gh` CLI with the
   fine-grained PAT via `GH_TOKEN`, or the web UI.
-- [ ] **Branch protection** on `main` (Settings → Branches → Add rule):
-  require PR + 1 approval; dismiss stale approvals; require the `Lint & Typecheck` status
-  check; require up-to-date branches; no bypass. Record applied settings in
-  `.github/SETUP.md`.
+- [ ] **Branch protection** on `main` — **deliberately skipped, 2026-08-06, revisit if
+  the plan or team changes.** Neither classic branch protection nor GitHub's newer
+  Rulesets can be enforced on a private repo below **GitHub Team** — confirmed via a
+  direct `gh api PUT .../branches/main/protection` call (403: "Upgrade to GitHub Pro or
+  make this repository public") even with admin access, and independently via GitHub's
+  own community docs (rulesets have the identical restriction; Free-plan private repos
+  get neither feature). The org owner declined the paid upgrade and declined making the
+  repo public, so there is currently no way to get platform-enforced protection on
+  `main` — `git push` directly to `main` and unreviewed merges are technically possible
+  until one of those changes. Compensate with process discipline (PR review by habit)
+  in the meantime. If this ever becomes unacceptable, the only two unlocks are: upgrade
+  the `forgecompany-tech` org to GitHub Team, or make the repo public.
 
 ### 3. Deploy — Cloudflare Workers *(blocker)*
-- [ ] First deploy: `pnpm run deploy` (`opennextjs-cloudflare build && wrangler deploy`),
-  or activate `deploy.yml`.
-- [ ] **Verify `CLOUDFLARE_API_TOKEN` is scoped for Workers deploy** — the value was
-  minted for Pages; if `wrangler deploy` 403s, mint a token with *Workers Scripts: Edit*
-  and update the secret + `.env`.
+- [x] `opennextjs-cloudflare build` + `wrangler deploy --dry-run` — done 2026-08-05, both
+  clean (all routes still `ƒ` dynamic per ADR-0008; upload 6.5 MB / 1.3 MB gzip; bindings
+  `WORKER_SELF_REFERENCE`/`IMAGES`/`ASSETS` all resolved). Proves the build path, not a
+  real deploy — no Worker was uploaded.
+- [x] **`CLOUDFLARE_API_TOKEN` Workers scope — checked 2026-08-05, looks fine.** A direct
+  `GET /accounts/{id}/workers/scripts` call succeeded (`success: true`), which a
+  Pages-only token could not do. Read access is confirmed; write (`Edit`) is only
+  provable by an actual deploy — the original "minted for Pages" fear looks unfounded
+  but isn't 100% ruled out until the first real `wrangler deploy`.
+- [ ] First real deploy: `pnpm run deploy` (`opennextjs-cloudflare build && wrangler
+  deploy`), or run `deploy.yml` once via `workflow_dispatch` as a controlled first
+  attempt. `deploy.yml` now pushes runtime secrets correctly (see
+  `.claude/rules/phase-history.md`'s Fase 4 entry — it previously only reached
+  `NEXT_PUBLIC_*` build-time inlining and would have 500'd on first Supabase access).
 - [ ] Run `mise run preview` (local Workers runtime) before deploying — Workers-runtime
   problems surface there and not under `next dev`. Watch for `next/image` gaps and the
   emulated ISR cache key (`.claude/docs/TECHNICAL_REVIEW_CONTEXT7.md` §1–2).
 - [ ] Plan B if OpenNext debugging exceeds ~1 day: **Vercel Pro** (ADR-0001) — deliberate,
   not improvised.
+- [ ] Real tenant content for the three MVP domains: drafted and dry-run-verified
+  2026-08-05, handed to the user as ready-to-paste SQL for Supabase Studio (cloud
+  `clients`/`landing_pages`/`leads` were confirmed completely empty beforehand — this
+  is a first insert, not a promotion). Rows land as `status = 'draft'`.
+- [ ] Real WhatsApp numbers for all three tenants — still placeholders as of 2026-08-05.
 - [ ] Per-client **custom hostname** + SSL via Cloudflare for SaaS for the three MVP
   domains: `forgecompany.example.com`, `dellaquila.dev`,
-  `imobiliaria.forgecompany.example.com` (see ADR-0001 & `docs/ADD_CLIENT.md`).
+  `imobiliaria.forgecompany.example.com` (see ADR-0001 & `docs/ADD_CLIENT.md`). **No API
+  integration code exists for this** — confirmed by reading ADR-0001, which always
+  described this as "to be wired when the first client is onboarded." For exactly 3
+  known domains, manual per-domain setup in the Cloudflare dashboard is the right call
+  now; building Cloudflare for SaaS API automation for a fixed, small tenant count
+  would be premature (CLAUDE.md §10 rules out solving problems that don't exist yet).
+- [ ] Flip each promoted `landing_pages.status` to `'published'` only after both its
+  WhatsApp number and its domain are real — RLS already scopes the publishable key to
+  `published` rows, so a `draft` row is invisible to visitors even once DNS resolves.
 
 ### 4. Visibility
 - [ ] Enable **Cloudflare Web Analytics** per hostname in the Cloudflare dashboard
@@ -158,10 +194,30 @@ single source + `docs/SECRETS.md` matrix.
 ## Resume prompt (paste in a new session)
 
 ```
-Read .claude/CLAUDE.md, .claude/docs/MVP_REWRITE_CONTEXT.md and docs/GO_LIVE.md in full.
-We're mid MVP rewrite (ADR-0007): Next.js 16 + Supabase JSONB blocks + Cloudflare Workers.
-Continue from the current Fase. Next up: <pick one — "finish Fase 0/1 (multi-tenant render
-+ Forge Company content)" | "reconcile GitHub secrets + activate workflows + branch
-protection" | "first deploy to Cloudflare Workers">.
-Ask before commits and before installing dependencies; branch + PR for any commit.
+Read .claude/CLAUDE.md, .claude/docs/MVP_REWRITE_CONTEXT.md and docs/GO_LIVE.md in full,
+plus .claude/rules/phase-history.md's Fase 4 entry for the detailed record. We're mid MVP
+rewrite (ADR-0007): Next.js 16 + Supabase JSONB blocks + Cloudflare Workers. Fases 0-3 are
+done; we're in Fase 4 (deploy). Branch protection on main is a deliberately accepted gap
+(GitHub plan limitation, not a task) — don't re-open it unless I say the plan changed.
+
+Walk me through these, one at a time, in this order — tell me exactly what to do/click for
+each, wait for me to confirm it's done before moving on:
+
+1. WhatsApp: give me the real numbers to swap in for Forge Company, dellaquila.dev, and
+   Horizonte Imóveis (currently placeholders in the seed + the draft Studio SQL).
+2. Turnstile: check the widget's Hostname Management in the Cloudflare dashboard, add
+   `localhost` if it's missing, then do the real human-solve browser test.
+3. Paste the drafted tenant SQL into Supabase Studio's SQL editor (cloud project
+   ofpnglnnzpowlzsyfbit) — rows land as status='draft'.
+4. DNS + Cloudflare for SaaS: add forgecompany.example.com, dellaquila.dev, and
+   imobiliaria.forgecompany.example.com as custom hostnames pointing at the Worker (manual
+   dashboard setup — no API integration code exists for this yet, and building one for
+   3 fixed domains would be premature).
+5. Once a tenant's number and domain are both real: flip its landing_pages.status to
+   'published'.
+
+After all five: activate deploy.yml's trigger (or run it once via workflow_dispatch) and
+do the first real wrangler deploy.
+
+Ask before commits, before installing dependencies, and before running migrations.
 ```

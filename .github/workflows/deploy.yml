@@ -20,7 +20,6 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
 
@@ -43,3 +42,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+          # wrangler deploy never reads the runner's shell env — these must be pushed
+          # as Worker secrets explicitly (via `wrangler secret bulk`), or the app 500s
+          # on first Supabase/Turnstile access at runtime. NEXT_PUBLIC_* need no entry
+          # here: they're already inlined into the client bundle by the build step above.
+          secrets: |
+            SUPABASE_URL
+            SUPABASE_PUBLISHABLE_KEY
+            SUPABASE_SECRET_KEY
+            TURNSTILE_SECRET_KEY

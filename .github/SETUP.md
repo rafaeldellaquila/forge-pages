@@ -8,11 +8,10 @@ are present but commented out in each file — activate them when ready (see bot
 
 ## Required secrets
 
-These 11 are exactly what the workflows read — nothing else should be configured. Every
+These 10 are exactly what the workflows read — nothing else should be configured. Every
 Supabase value points at the single cloud project this repo targets,
 **`ofpnglnnzpowlzsyfbit`** (org Forge Company). The values are mirrored in the root `.env`
-(`PROD_*` for the Supabase ones), except `NEXT_PUBLIC_SITE_URL`, which is the production
-domain here and a localhost URL in local dev.
+(`PROD_*` for the Supabase ones).
 
 ### Supabase
 - `SUPABASE_URL` — Project URL
@@ -20,9 +19,6 @@ domain here and a localhost URL in local dev.
 - `SUPABASE_SECRET_KEY` — Secret key (`sb_secret_...`, server-side only)
 - `SUPABASE_DB_HOST` — Direct database host (for the backup workflow's `pg_dump`)
 - `SUPABASE_DB_PASSWORD` — Database password
-
-### App
-- `NEXT_PUBLIC_SITE_URL` — canonical production URL (e.g. `https://forgecompany.example.com`)
 
 ### Cloudflare Turnstile
 - `TURNSTILE_SECRET_KEY` — server-side siteverify secret
