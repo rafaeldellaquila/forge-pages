@@ -70,13 +70,16 @@ export function resolveBackground(background: Background | null | undefined): Re
       }
 
     // Base fill, a soft top-lit glow in the tenant's primary, and a 3px hairline
-    // weave — the page-level treatment the Forge Company port needs.
+    // weave — the page-level treatment the Forge Company port needs. The ellipse
+    // is wider than the viewport (not 100%) so its fade-to-transparent edge
+    // falls outside the visible page — at exactly 100% the glow visibly cuts off
+    // before reaching the left/right edges instead of bleeding past them.
     case 'fine-line-texture':
       return {
         style: {
           backgroundColor: color,
           backgroundImage: [
-            `radial-gradient(ellipse 80% 50% at 50% -10%, ${withAlpha('var(--tenant-primary)', 8)}, transparent)`,
+            `radial-gradient(ellipse 160% 50% at 50% -10%, ${withAlpha('var(--tenant-primary)', 8)}, transparent)`,
             'repeating-linear-gradient(115deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px)',
           ].join(', '),
         },
