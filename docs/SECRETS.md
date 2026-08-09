@@ -43,7 +43,6 @@ Consumers: `app` = the Next.js app (server unless marked *public*) ·
 
 | Variable | Consumer | Dev | Prod |
 |---|---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | app (public) | empty | GH secret (baked at build) + CF Workers env |
 | `TURNSTILE_SECRET_KEY` | app (server) | test secret `1x0000000000000000000000000000000AA`, or empty to skip | GH secret + CF Workers env |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | app (public) | test site key `1x00000000000000000000AA`, or empty to skip | GH secret (baked at build) |
 
@@ -62,6 +61,11 @@ Consumers: `app` = the Next.js app (server unless marked *public*) ·
   (if CI needs it).
 - Rotation: prod keys are replaced by updating the injection point (GH secret / Cloudflare
   dashboard) — the local `.env` only ever holds dev values.
+- `wrangler deploy` never reads the CI runner's shell env into the Worker's runtime — a GH
+  Actions secret set as job `env:` only reaches `NEXT_PUBLIC_*` build-time inlining.
+  Server-side vars (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+  `TURNSTILE_SECRET_KEY`) must be pushed as Worker secrets, which `deploy.yml` does via
+  `cloudflare/wrangler-action`'s `secrets:` input (`wrangler secret bulk` under the hood).
 - Keep root `.env` values **bare**: no surrounding quotes, no inline `#` comments — mise's
   dotenv parser captures them literally.
 - Analytics needs no env var: **Cloudflare Web Analytics** is enabled per hostname in the
