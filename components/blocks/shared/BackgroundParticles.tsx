@@ -95,5 +95,10 @@ export function BackgroundParticles() {
 
   // No aria-hidden: an empty <canvas> exposes nothing to assistive tech anyway,
   // and hiding a potentially focusable element is itself an a11y problem.
-  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-0" />
+  //
+  // `size-full` is load-bearing, not decorative: canvas is a replaced element,
+  // so `inset-0` alone (which stretches a <div>) leaves it at its intrinsic
+  // 300x150 default — and resize() below reads that same default back via
+  // getBoundingClientRect(), so the drawing buffer never grows past it either.
+  return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-0 size-full" />
 }
