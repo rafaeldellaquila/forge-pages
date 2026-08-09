@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Como nasce uma landing page — Forge Company</title>
+<style>
+  :root {
+    --bg: #1b1613;
+    --surface: #241c17;
+    --surface-2: #2e241d;
+    --ink: #f2e9dc;
+    --ink-dim: #c9bba8;
+    --ink-muted: #8f8172;
+    --accent: #e2703a;
+    --accent-ink: #1b1613;
+    --line: #3a2e25;
+    --good: #7ba86b;
+    --shadow: 0 24px 48px -24px rgba(0,0,0,0.65);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #ece4d6;
+      --surface: #f5efe4;
+      --surface-2: #ffffff;
+      --ink: #241c17;
+      --ink-dim: #4a3d33;
+      --ink-muted: #7a6b5c;
+      --accent: #c1531f;
+      --accent-ink: #fdf6ec;
+      --line: #d9cdbb;
+      --good: #4f7a43;
+      --shadow: 0 24px 48px -28px rgba(60,40,20,0.28);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ece4d6;
+    --surface: #f5efe4;
+    --surface-2: #ffffff;
+    --ink: #241c17;
+    --ink-dim: #4a3d33;
+    --ink-muted: #7a6b5c;
+    --accent: #c1531f;
+    --accent-ink: #fdf6ec;
+    --line: #d9cdbb;
+    --good: #4f7a43;
+    --shadow: 0 24px 48px -28px rgba(60,40,20,0.28);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .page { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+  .hero {
+    padding: 4rem 0 3rem;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: clamp(2.1rem, 6vw, 3.2rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0.7rem 0 1rem;
+    text-wrap: balance;
+  }
+
+  .hero .lede {
+    color: var(--ink-dim);
+    font-size: 1.15rem;
+    max-width: 52ch;
+    margin: 0 auto;
+  }
+
+  h2 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+
+  section { margin-bottom: 3.5rem; }
+  p { margin: 0 0 1rem; max-width: 62ch; }
+  p:last-child { margin-bottom: 0; }
+
+  .analogy {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 1.75rem 2rem;
+    box-shadow: var(--shadow);
+  }
+
+  .analogy p { max-width: none; font-size: 1.02rem; color: var(--ink-dim); }
+  .analogy strong { color: var(--ink); }
+
+  /* block stack */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin: 1.5rem 0;
+  }
+
+  .block-piece {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--accent);
+    border-radius: 4px;
+    padding: 0.9rem 1.2rem;
+    box-shadow: var(--shadow);
+  }
+
+  .block-piece .glyph {
+    font-size: 1.3rem;
+    width: 2.2rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .block-piece .label {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-weight: 700;
+    font-size: 0.98rem;
+  }
+
+  .block-piece .desc {
+    color: var(--ink-muted);
+    font-size: 0.88rem;
+  }
+
+  .block-piece.optional { border-left-style: dashed; opacity: 0.85; }
+
+  .stations {
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid var(--line);
+    margin-left: 0.9rem;
+  }
+
+  .station { position: relative; padding: 0 0 2.1rem 2rem; }
+  .station:last-child { padding-bottom: 0; }
+
+  .station::before {
+    content: attr(data-n);
+    position: absolute;
+    left: -1.1rem;
+    top: -0.15rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .station h3 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 1.08rem;
+    margin: 0.1rem 0 0.4rem;
+  }
+  .station p { margin: 0; color: var(--ink-dim); }
+
+  .example {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .example .browser-bar {
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+  }
+
+  .example .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--line); }
+
+  .example .mock {
+    background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+    padding: 2.5rem 2rem;
+    text-align: center;
+  }
+
+  .example .mock .tag {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .example .mock h3 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 1.6rem;
+    margin: 0.5rem 0 0.6rem;
+  }
+
+  .example .mock p { max-width: 42ch; margin: 0 auto; color: var(--ink-dim); }
+
+  .example .cta {
+    display: inline-block;
+    margin-top: 1.2rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.6rem 1.3rem;
+    border-radius: 999px;
+  }
+
+  .why {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .why-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.2rem 1.3rem;
+  }
+
+  .why-card .tag {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--good);
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  .why-card p { color: var(--ink-dim); font-size: 0.92rem; margin: 0; }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  @media (max-width: 560px) {
+    .hero { padding: 3rem 0 2rem; }
+    .analogy { padding: 1.3rem 1.4rem; }
+    .station { padding-left: 1.6rem; }
+    .stations { margin-left: 0.7rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <span class="eyebrow">Forge Company · Como funciona</span>
+    <h1>Como nasce uma landing page</h1>
+    <p class="lede">Cada cliente ganha uma página profissional no próprio endereço — sem
+      construir um site do zero para cada um. Veja como isso acontece nos bastidores.</p>
+  </div>
+
+  <section>
+    <h2>A analogia</h2>
+    <div class="analogy">
+      <p>Pense num prédio de apartamentos. O <strong>prédio</strong> — o sistema — é um só,
+        mas cada <strong>apartamento</strong> — cada cliente — é decorado do seu jeito.
+        Quando alguém toca a campainha de um endereço, a portaria já sabe para qual
+        apartamento levar, sem precisar construir um prédio novo para cada morador.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Uma página é feita de blocos</h2>
+    <p>A página é montada como peças: um bloco de destaque no topo, um de diferenciais, um
+      de depoimentos, um de formulário de contato, um rodapé — e assim por diante. Dá para
+      combinar as peças de formas diferentes para cada cliente.</p>
+    <div class="stack">
+      <div class="block-piece">
+        <span class="glyph">🔥</span>
+        <div><span class="label">Cabeçalho</span><br><span class="desc">logo, menu, botão de contato</span></div>
+      </div>
+      <div class="block-piece">
+        <span class="glyph">⚒️</span>
+        <div><span class="label">Destaque (hero)</span><br><span class="desc">a frase de impacto que abre a página</span></div>
+      </div>
+      <div class="block-piece optional">
+        <span class="glyph">✦</span>
+        <div><span class="label">Diferenciais / depoimentos</span><br><span class="desc">o porquê de confiar no cliente — opcional</span></div>
+      </div>
+      <div class="block-piece optional">
+        <span class="glyph">💰</span>
+        <div><span class="label">Pacotes / preços</span><br><span class="desc">as ofertas — opcional</span></div>
+      </div>
+      <div class="block-piece">
+        <span class="glyph">✉️</span>
+        <div><span class="label">Formulário de contato</span><br><span class="desc">onde o visitante vira um lead</span></div>
+      </div>
+      <div class="block-piece">
+        <span class="glyph">▤</span>
+        <div><span class="label">Rodapé</span><br><span class="desc">contato, redes sociais, endereço</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Bastidores em 4 passos</h2>
+    <div class="stations">
+      <div class="station" data-n="1">
+        <h3>Reunir a marca e o conteúdo</h3>
+        <p>Cores, fonte, textos, pacotes e depoimentos do cliente.</p>
+      </div>
+      <div class="station" data-n="2">
+        <h3>Montar os blocos da página</h3>
+        <p>Escolhe-se quais blocos entram e em que ordem, com o conteúdo de cada um.</p>
+      </div>
+      <div class="station" data-n="3">
+        <h3>Cadastrar no banco</h3>
+        <p>Uma única linha guarda o endereço, o tema e o conteúdo inteiro do cliente.</p>
+      </div>
+      <div class="station" data-n="4">
+        <h3>Conferir e publicar</h3>
+        <p>A página abre no endereço do cliente, já pronta para receber contatos.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Exemplo real: a própria página da Forge</h2>
+    <div class="example">
+      <div class="browser-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        forgecompany.example.com
+      </div>
+      <div class="mock">
+        <span class="tag">Forge Co. — Built to Convert</span>
+        <h3>Marketing forjado sob medida</h3>
+        <p>Cada peça montada com intenção — do primeiro clique ao contato fechado.</p>
+        <span class="cta">Ver pacotes ⚒️</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Por que essa abordagem é boa</h2>
+    <div class="why">
+      <div class="why-card">
+        <span class="tag">Escala fácil</span>
+        <p>Cadastrar um cliente novo é adicionar dados e conteúdo — não construir um site.</p>
+      </div>
+      <div class="why-card">
+        <span class="tag">Rápido</span>
+        <p>Servido de servidores espalhados pelo mundo, perto de quem acessa.</p>
+      </div>
+      <div class="why-card">
+        <span class="tag">Simples de operar</span>
+        <p>Um sistema só, uma ferramenta só para conteúdo e leads.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Referência técnica completa: <code>docs/pt-br/NOVA-LANDING-PAGE.md</code>
+  </footer>
+
+</div>
+</body>
+</html>

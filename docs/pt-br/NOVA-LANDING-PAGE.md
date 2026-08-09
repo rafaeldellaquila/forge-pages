@@ -20,6 +20,9 @@ Em produção falta só uma coisa a mais: cadastrar o domínio na Cloudflare (pa
 Resumindo: **uma linha no banco + um domínio na Cloudflare** — sem CMS, sem publicar nada
 por cliente.
 
+> Precisa editar uma página que já existe, em vez de criar uma nova? Vá direto para
+> [Editando uma landing page existente](#editando-uma-landing-page-existente).
+
 ---
 
 ## Local (desenvolvimento)
@@ -65,6 +68,63 @@ O formato aceito de cada tipo de bloco está definido em `lib/types/blocks.ts` e
 por `lib/schemas/blocks.ts`. Na prática: **copie a lista de um cliente existente** e troque
 os textos. Se o JSON estiver fora do formato, a página falha com uma mensagem clara em vez
 de abrir quebrada.
+
+---
+
+## Editando uma landing page existente
+
+Editar é reler e regravar a mesma linha descrita acima — normalmente a coluna `blocks`, às
+vezes as colunas de tema/fundo/SEO. Não existe ferramenta de diff nem CMS.
+
+**Ache a linha certa primeiro, pelo `domain`** (é único) — não só pelo `client_id`. Confirme
+que é o cliente certo antes de mudar qualquer coisa.
+
+**Leia a lista `blocks` inteira antes de gravar qualquer coisa de volta.** É um único valor
+JSON com todas as seções da página — uma atualização que não parte da lista atual apaga em
+silêncio qualquer bloco que você não incluiu. Edite só o(s) bloco(s) que precisa mudar e
+grave a lista inteira de volta.
+
+Três formas de editar, escolha pela situação:
+
+| Forma | Melhor para |
+| ----- | ----------- |
+| Editar a célula no Studio (Table Editor) | Uma mudança pequena e pontual, principalmente em **produção**, onde os arquivos de exemplo não se aplicam |
+| Arquivo de exemplo (`infra/supabase/seed/02_landing_pages.sql`) + `supabase db reset --workdir infra` | Uma mudança que deve sobreviver a um reset local (corrigir um cliente de demonstração de vez) |
+| `UPDATE` direto no SQL (editor SQL do Studio ou `psql`) | Uma edição grande de JSON, incômoda de fazer na célula do Studio |
+
+Duas coisas podem dar errado numa edição, e só uma delas avisa:
+
+- Um campo que falha na validação (tipo errado, campo obrigatório faltando) falha **alto e
+  claro** ao carregar a página, apontando o caminho exato no JSON — fácil de perceber.
+- Um `variant` escrito errado (ex.: `"centred"` em vez de `"centered"`) falha **em
+  silêncio** — cai para `'default'` e a página continua abrindo, só que não do jeito
+  pretendido. A página abrir sem erro não é prova de que a edição funcionou como esperado;
+  confira o resultado na tela, não só a ausência de erro.
+
+Se a edição adiciona um segundo bloco de um tipo que já existe em outro lugar da página
+(ex.: um segundo `value-proposition`), dê a ele seu próprio `anchorId` — um `anchorId`
+repetido ou faltando quebra o link de navegação da página em silêncio (link morto, sem
+erro). Se a edição mexe num `background` (em `header`, `hero`, `differentials`, ou nas
+colunas `background_*` da página), mantenha as cores passando por `colorToken`
+(`primary`\|`secondary`\|`custom`) em vez de um valor de cor fixo no JSON.
+
+Os campos que não são blocos, na mesma linha, seguem a mesma regra: `theme_mode`
+(só `dark`\|`light` — escolhe uma de duas paletas neutras fixas, não é uma paleta livre),
+`primary_color`/`secondary_color`, `font_family`/`secondary_font_family` (precisa ser um
+nome cadastrado em `lib/fonts.ts` — não é texto livre), e os campos de SEO.
+
+**Confira** recarregando a página do cliente e vendo se a mudança específica aparece — não
+só se a página continua abrindo. Em produção, confira também se os outros blocos da página
+continuam iguais, o que pega uma gravação parcial acidental da lista.
+
+### Checklist de edição
+
+- [ ] Linha certa localizada pelo `domain` exato.
+- [ ] Lista `blocks` inteira lida antes de gravar (sem atualização parcial às cegas).
+- [ ] `anchorId` continua único entre blocos do mesmo tipo depois da edição.
+- [ ] Cores continuam passando por `colorToken`, sem valor fixo.
+- [ ] Página recarregada e a mudança específica confirmada na tela — não só "sem erro".
+- [ ] (Produção) Outros blocos da página confirmados sem alteração.
 
 ---
 

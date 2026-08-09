@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Como ver os leads no Supabase — Forge Company</title>
+<style>
+  :root {
+    --bg: #1b1613;
+    --surface: #241c17;
+    --surface-2: #2e241d;
+    --ink: #f2e9dc;
+    --ink-dim: #c9bba8;
+    --ink-muted: #8f8172;
+    --accent: #e2703a;
+    --accent-ink: #1b1613;
+    --line: #3a2e25;
+    --good: #7ba86b;
+    --warn: #d1a13a;
+    --critical: #c0503a;
+    --shadow: 0 20px 40px -20px rgba(0,0,0,0.6);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #ece4d6;
+      --surface: #f5efe4;
+      --surface-2: #ffffff;
+      --ink: #241c17;
+      --ink-dim: #4a3d33;
+      --ink-muted: #7a6b5c;
+      --accent: #c1531f;
+      --accent-ink: #fdf6ec;
+      --line: #d9cdbb;
+      --good: #4f7a43;
+      --warn: #a8791f;
+      --critical: #a13d26;
+      --shadow: 0 20px 40px -24px rgba(60,40,20,0.25);
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #ece4d6;
+    --surface: #f5efe4;
+    --surface-2: #ffffff;
+    --ink: #241c17;
+    --ink-dim: #4a3d33;
+    --ink-muted: #7a6b5c;
+    --accent: #c1531f;
+    --accent-ink: #fdf6ec;
+    --line: #d9cdbb;
+    --good: #4f7a43;
+    --warn: #a8791f;
+    --critical: #a13d26;
+    --shadow: 0 20px 40px -24px rgba(60,40,20,0.25);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  .eyebrow {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 1.4em;
+    height: 2px;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  .plate {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    border-radius: 4px;
+    padding: 2rem 2rem 1.75rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2.5rem;
+  }
+
+  h1 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: clamp(1.75rem, 4vw, 2.4rem);
+    line-height: 1.15;
+    margin: 0.5rem 0 0.6rem;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    color: var(--ink-dim);
+    font-size: 1.05rem;
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  h2 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 1.3rem;
+    letter-spacing: -0.005em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+
+  section { margin-bottom: 2.75rem; }
+
+  p { margin: 0 0 1rem; max-width: 62ch; }
+  p:last-child { margin-bottom: 0; }
+
+  code, .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.05em 0.4em;
+  }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1.25rem 1.5rem;
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.95rem;
+  }
+
+  .flow .step {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .flow .arrow {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 1.1rem 1.4rem;
+  }
+
+  .callout p { max-width: none; }
+
+  .callout .tag {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .callout.hazard {
+    border-left-color: var(--warn);
+  }
+  .callout.hazard .tag { color: var(--warn); }
+
+  .stations {
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid var(--line);
+    margin-left: 0.9rem;
+  }
+
+  .station {
+    position: relative;
+    padding: 0 0 2rem 2rem;
+  }
+  .station:last-child { padding-bottom: 0; }
+
+  .station::before {
+    content: attr(data-n);
+    position: absolute;
+    left: -1.1rem;
+    top: -0.15rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--accent);
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .station h3 {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 1.05rem;
+    margin: 0.1rem 0 0.4rem;
+  }
+
+  .station p { margin: 0; color: var(--ink-dim); }
+
+  .ledger-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  thead th {
+    text-align: left;
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink-dim);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--surface) 60%, transparent); }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.25rem; }
+
+  .pill {
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.82rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+  }
+
+  .pill::before {
+    content: "";
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--dot, var(--ink-muted));
+  }
+
+  .pill.new { --dot: var(--warn); }
+  .pill.contacted { --dot: var(--accent); }
+  .pill.converted { --dot: var(--good); }
+  .pill.lost { --dot: var(--critical); }
+
+  ol.checklist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  ol.checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    color: var(--ink-dim);
+  }
+
+  ol.checklist .num {
+    font-family: "Rockwell", "Roboto Slab", "Zilla Slab", Georgia, serif;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 1.4em;
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 520px) {
+    .plate { padding: 1.5rem 1.25rem; }
+    .station { padding-left: 1.6rem; }
+    .stations { margin-left: 0.7rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="plate">
+    <span class="eyebrow">Forge Company · Guia interno</span>
+    <h1>Como ver os leads no Supabase</h1>
+    <p class="lede">Um passo a passo simples para acompanhar os contatos que chegam pelas
+      landing pages — sem precisar de conhecimento técnico.</p>
+  </div>
+
+  <section>
+    <h2>O que é um lead</h2>
+    <p>Um lead é um contato interessado que preencheu o formulário em uma das landing
+      pages — nome, WhatsApp, e-mail, mensagem. O caminho é sempre o mesmo:</p>
+    <div class="flow">
+      <div class="step">Visitante preenche o formulário na página</div>
+      <div class="step"><span class="arrow">→</span> o sistema confere que não é um robô</div>
+      <div class="step"><span class="arrow">→</span> o contato é salvo com segurança no banco de dados</div>
+      <div class="step"><span class="arrow">→</span> fica disponível para consulta, separado por cliente</div>
+    </div>
+    <p>Não existe hoje um painel próprio para leads — eles ficam guardados no Supabase, a
+      mesma ferramenta usada para editar o conteúdo das páginas.</p>
+  </section>
+
+  <section>
+    <h2>Antes de começar: o acesso</h2>
+    <div class="callout">
+      <span class="tag">Como pedir acesso</span>
+      <p>Quem já tem acesso ao Supabase precisa te adicionar como membro do projeto pelo
+        painel. Depois de aceitar o convite, você entra pelo navegador, sem instalar nada:
+        <code>supabase.com/dashboard</code> → projeto da Forge Company.</p>
+    </div>
+    <div class="callout hazard" style="margin-top:1rem;">
+      <span class="tag">Atenção</span>
+      <p>Esse convite dá acesso a <strong>todo o projeto</strong>, não só à lista de leads —
+        hoje não existe uma forma de liberar visão só dos contatos. Trate o acesso como
+        pessoal e não compartilhe seu login.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Encontrando os leads</h2>
+    <div class="stations">
+      <div class="station" data-n="1">
+        <h3>Entre no painel</h3>
+        <p>Acesse <code>supabase.com/dashboard</code> e faça login.</p>
+      </div>
+      <div class="station" data-n="2">
+        <h3>Abra o projeto</h3>
+        <p>Selecione o projeto da Forge Company na lista.</p>
+      </div>
+      <div class="station" data-n="3">
+        <h3>Table Editor</h3>
+        <p>No menu à esquerda, clique em <strong>Table Editor</strong>.</p>
+      </div>
+      <div class="station" data-n="4">
+        <h3>Tabela leads</h3>
+        <p>Na lista de tabelas, clique em <code>leads</code>. Cada linha é um contato
+          recebido.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>O que cada coluna significa</h2>
+    <div class="ledger-wrap">
+      <table>
+        <thead>
+          <tr><th>Coluna</th><th>O que é</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>name</code></td><td>Nome informado pelo contato</td></tr>
+          <tr><td><code>whatsapp</code></td><td>WhatsApp informado</td></tr>
+          <tr><td><code>email</code></td><td>E-mail informado (pode estar vazio)</td></tr>
+          <tr><td><code>message</code></td><td>Mensagem escrita pela pessoa (pode estar vazia)</td></tr>
+          <tr><td><code>intent</code></td><td>O interesse selecionado no formulário</td></tr>
+          <tr><td><code>domain</code></td><td>De qual landing page veio o contato</td></tr>
+          <tr><td><code>status</code></td><td>Em que ponto do atendimento o lead está</td></tr>
+          <tr><td><code>created_at</code></td><td>Data e hora em que o contato chegou</td></tr>
+          <tr><td><code>utm_source/medium/campaign</code></td><td>De onde veio o clique, se por anúncio/campanha</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Filtrar, ordenar e exportar</h2>
+    <p><strong>Filtrar por cliente:</strong> clique em <strong>Filter</strong> → coluna
+      <code>domain</code> → digite o domínio. <strong>Filtrar por status:</strong> mesma
+      ideia, na coluna <code>status</code>. <strong>Mais recentes primeiro:</strong> a
+      coluna <code>created_at</code> já vem ordenada assim por padrão.</p>
+    <p>Para gerar uma planilha com o que está filtrado na tela, use o botão de exportar
+      (ícone de download, ao lado de <strong>Filter</strong>) — baixa um CSV.</p>
+    <div class="callout hazard">
+      <span class="tag">Cuidado com o CSV</span>
+      <p>O arquivo exportado contém dados pessoais (nome, WhatsApp, e-mail). Não reenvie por
+        canais abertos e apague quando não precisar mais dele.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Atualizando o andamento de um contato</h2>
+    <p>A coluna <code>status</code> é editada direto na mesma tabela — clique duas vezes na
+      célula e escolha um valor. Manter isso atualizado é o que permite, no futuro, saber
+      quantos leads viraram cliente de fato.</p>
+    <div class="pills">
+      <span class="pill new">new — recém-chegado</span>
+      <span class="pill contacted">contacted — já falamos</span>
+      <span class="pill converted">converted — virou cliente</span>
+      <span class="pill lost">lost — não seguiu</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Resumo rápido</h2>
+    <ol class="checklist">
+      <li><span class="num">01</span> Pedir convite de acesso ao Supabase.</li>
+      <li><span class="num">02</span> Table Editor → tabela <code>leads</code>.</li>
+      <li><span class="num">03</span> Filtrar por <code>domain</code> e/ou <code>status</code>.</li>
+      <li><span class="num">04</span> Exportar em CSV se precisar de planilha.</li>
+      <li><span class="num">05</span> Atualizar <code>status</code> conforme for atendendo cada contato.</li>
+    </ol>
+  </section>
+
+  <footer>
+    Referência completa em texto: <code>docs/pt-br/COMO-VER-LEADS.md</code>. Dúvidas sobre
+    acesso, fale com quem administra o projeto no Supabase.
+  </footer>
+
+</div>
+</body>
+</html>

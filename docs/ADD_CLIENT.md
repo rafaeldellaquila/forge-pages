@@ -20,6 +20,9 @@ In production the domain additionally needs a **Cloudflare for SaaS custom hostn
 DNS/SSL. That's the whole onboarding: one row, one hostname — no CMS entry, no per-client
 deploy (ADR-0007).
 
+> Editing an existing tenant's page instead of creating a new one? Skip to
+> [Editing an existing landing page](#editing-an-existing-landing-page).
+
 ---
 
 ## Local (development)
@@ -79,6 +82,63 @@ tenant's array as a starting point.
 A block whose JSON fails validation fails loudly at fetch time — the Zod error names the
 offending path. Adding a **new** block type means a new interface, a new schema, and a new
 component (`mise run gen:block <name>` scaffolds the component and prints the rest).
+
+---
+
+## Editing an existing landing page
+
+Editing is a read-modify-write of the same one row described above — usually its `blocks`
+column, sometimes its theme/background/SEO columns. There's no diffing tool and no CMS.
+
+**Locate the row first, by `domain`** (unique) — not by `client_id` alone. Confirm it's the
+right tenant before changing anything.
+
+**Read the current `blocks` array in full before writing anything back.** It's a single
+JSONB value holding every section of the page — an update built from anything other than the
+full current array silently drops whatever block(s) you didn't include. Edit only what needs
+to change, then write the whole array back.
+
+Three edit surfaces, pick based on where the change needs to live:
+
+| Surface | Best for |
+| ------- | -------- |
+| Studio cell edit (Table Editor) | A small one-off change, especially in **production** where seed files don't apply |
+| Seed file (`infra/supabase/seed/02_landing_pages.sql`) + `supabase db reset --workdir infra` | A change that should survive a local reset (fixing a demo tenant for good) |
+| Direct SQL `UPDATE` (Studio SQL editor or `psql`) | A large JSON edit that's awkward in Studio's cell editor |
+
+Two things can go wrong with an edit, and only one of them is loud:
+
+- A field that fails Zod validation (wrong type, missing required field) fails **loudly** at
+  fetch time, naming the exact JSON path — easy to catch, the page won't render.
+- A misspelled `variant` (e.g. `"centred"` instead of `"centered"`) fails **silently** — it
+  falls back to `'default'` and the page still renders, just not as intended. A clean page
+  load after an edit is not proof the edit did what you meant; check the rendered result
+  against the actual request, not just the absence of an error.
+
+If the edit adds a second block of a type already present elsewhere on the page (e.g. a
+second `value-proposition`), give it its own `anchorId` — a duplicate or missing `anchorId`
+breaks in-page nav links silently (a dead `#fragment`, no error). If the edit touches a
+`background` (on `header`, `hero`, `differentials`, or the page-level `background_*`
+columns), keep colors going through `colorToken` (`primary`\|`secondary`\|`custom`) rather
+than hardcoding a hex value.
+
+Non-block fields on the same row follow the same rule: `theme_mode` (`dark`\|`light` only —
+picks one of two fixed neutral ramps, not a free palette), `primary_color`/`secondary_color`,
+`font_family`/`secondary_font_family` (must be a name in the curated registry, `lib/fonts.ts`
+— not free text), and the SEO columns.
+
+**Verify** by reloading the tenant and confirming the specific change is visible — not just
+that the page still loads. For a production edit, also check the *other* blocks on the page
+are unchanged, which catches an accidental partial-array write.
+
+### Editing checklist
+
+- [ ] Correct row located by exact `domain`.
+- [ ] Full current `blocks` array read before writing (no partial/blind update).
+- [ ] `anchorId` still unique across same-type blocks after the edit.
+- [ ] Colors still routed through `colorToken`, not hardcoded.
+- [ ] Page reloaded and the specific change confirmed visible — not just "no error."
+- [ ] (Prod) Other blocks on the page confirmed unchanged.
 
 ---
 
