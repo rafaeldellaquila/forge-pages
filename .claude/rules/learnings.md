@@ -77,3 +77,58 @@ Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (
   `landing_page_id` and `status: 'converted'` produced a row on the correct tenant with
   `status = 'new'` — the unknown keys never reach the insert. Worth an explicit test rather
   than trust: switching a schema to `.passthrough()` would silently open it.
+
+### 2026-08-05: Fase 3 — second/third tenant + light/dark theming
+
+- **Neutrals became themeable by adding one indirection, not by touching any component.**
+  `globals.css`'s `@theme` block went from `--color-surface: #2b2116` (literal) to
+  `--color-surface: var(--tenant-surface)`, with `app/layout.tsx` setting
+  `--tenant-surface` per request from `lib/theme.ts`. Every block already used the
+  `bg-surface`/`text-ink` Tailwind utilities rather than the custom properties directly,
+  so zero component files needed a change for two tenants to render in opposite themes.
+  **The lesson generalises**: route platform-wide tokens through one indirection layer
+  early, even before a second value is needed — the alternative is finding every literal
+  later.
+- **The Playwright MCP server's `chrome` channel isn't installed in this environment**
+  (`Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome`), same trap
+  Fase 1 hit. This time the bundled binary was driven directly via `playwright-core`
+  instead of the MCP tool: `NODE_PATH=<any-sibling-project>/node_modules node script.js`
+  works because `playwright-core` isn't installed in this repo but is in others on the
+  machine, and Node's `NODE_PATH` will resolve it from there. Executable path:
+  `~/.cache/ms-playwright/chromium-<rev>/chrome-linux64/chrome`.
+- **`page.goto(..., { waitUntil: 'networkidle' })` hangs indefinitely on any page with the
+  Turnstile widget in this sandbox** — no outbound network access to
+  `challenges.cloudflare.com` means the widget's script never settles, so "0 connections
+  for 500ms" never arrives. Use `waitUntil: 'load'` (+ a short fixed wait if the DOM needs
+  a beat) for any page-render check that doesn't specifically need network-idle.
+- **Cloudflare Turnstile emits its own console noise in headless/automated Chrome**
+  (`%c%d font-size:0;color:transparent NaN`) as anti-automation fingerprinting — it showed
+  up nondeterministically across repeated loads of the *same, unmodified* `forgecompany.localhost`
+  page. Don't diagnose this as an application console error; it's the third-party script,
+  not our code, and its absence/presence isn't a signal of anything.
+- **`pkill -f "wrangler dev"` kills its own shell** — same trap as the documented
+  `next-server` one (Fase 2 learnings): the pkill command's own argv contains the
+  unbracketed pattern. Bracket it: `pkill -f "wrangler[ ]dev"`.
+- **The pre-existing `pg_net` schema drift (cloud has it outside `public`, migrations
+  declare it schema-less) survived this session's cloud push untouched** — `db diff
+  --linked` after pushing `20260805000001`/`20260805000002` still reports
+  `drop extension if exists "pg_net"; create extension ... with schema "public"` as the
+  only remaining diff. Confirmed non-trivial to fix blind: relocating an extension's
+  schema can silently break any `pg_cron` job that calls it schema-qualified. Left open
+  rather than guessed at.
+
+### 2026-08-05: Fase 4 prep — `wrangler deploy` env var check
+
+- **`wrangler deploy` never auto-loads the root `.env`** — that behavior
+  (`getVarsForDev` in workers-sdk) is hardcoded to `wrangler dev` only, confirmed against
+  the Cloudflare Workers SDK source via Context7. No risk of the whole `.env` file
+  reaching a deploy; the carried-over concern from Fase 2 doesn't apply.
+- **But `deploy.yml` had a real gap the same investigation surfaced**: setting a secret
+  as GitHub Actions job `env:` only reaches the `opennextjs-cloudflare build` step
+  (correct for inlining `NEXT_PUBLIC_*`) — `wrangler deploy` does not forward the CI
+  runner's shell env into the Worker's runtime bindings. Server-side vars
+  (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+  `TURNSTILE_SECRET_KEY`) need to be pushed as Worker secrets explicitly, or the deploy
+  succeeds and the app 500s on first Supabase/Turnstile access. Fixed by adding
+  `cloudflare/wrangler-action`'s `secrets:` input (`wrangler secret bulk`) to the deploy
+  step — not yet run for real, since `deploy.yml`'s trigger is still commented out.

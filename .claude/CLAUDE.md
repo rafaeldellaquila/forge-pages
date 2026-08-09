@@ -52,7 +52,7 @@
 forge-pages/
 ├── app/                     # Next.js 16 App Router (layout.tsx, page.tsx, api/leads/)
 ├── components/blocks/       # React block components (Hero, Pricing, CtaForm, ...)
-├── lib/                     # types/, schemas/, supabase.ts (read), leads.ts (write), turnstile.ts, background.ts
+├── lib/                     # types/, schemas/, supabase.ts (read), leads.ts (write), turnstile.ts, background.ts, theme.ts
 ├── middleware.ts            # Edge middleware — Host header → x-tenant-host (NOT proxy.ts, see §12)
 ├── open-next.config.ts / wrangler.jsonc   # Cloudflare Workers config (OpenNext adapter)
 ├── infra/supabase/          # migrations/, seed/
@@ -95,6 +95,7 @@ id, name, email, whatsapp, created_at
 id, client_id, domain (unique), render_mode ('blocks'|'custom', default 'blocks'), status ('draft'|'published'|'archived')
 seo_title, seo_description, seo_og_image, canonical_url
 primary_color, secondary_color, font_family, secondary_font_family
+theme_mode ('dark'|'light', default 'dark')
 background_type, background_color_token, background_color_custom,
 background_gradient_to_token, background_gradient_to_custom, background_image_url,
 divider_glyph
@@ -102,7 +103,7 @@ blocks jsonb not null default '[]'   -- typed block array, validated with Zod on
 created_at, updated_at
 ```
 
-`background_*`/`divider_glyph` are the page-level tenant background layer (ADR-0005); per-block overrides live inline in each block's JSON (see §6).
+`background_*`/`divider_glyph` are the page-level tenant background layer (ADR-0005); per-block overrides live inline in each block's JSON (see §6). `theme_mode` selects the neutral color ramp (ADR-0010).
 
 ### leads
 ```sql
@@ -117,27 +118,7 @@ status ('new'|'contacted'|'converted'|'lost'), created_at
 
 ## 6. Block Types (JSON, Zod-validated)
 
-Blocks live in `landing_pages.blocks` (JSONB array). Each block type has a TypeScript interface in `lib/types/blocks.ts` and a matching Zod schema in `lib/schemas/blocks.ts`. An unrecognized `variant` falls back to `default` (ADR-0002); a failed schema on the whole page fails loudly in the Server Component rather than rendering silently broken.
-
-**`anchorId?: string`** (ADR-0008) on the in-flow block types (`hero`, `value-proposition`, `differentials`, `pricing`, `cta-form`) is the block's fragment target for in-page nav. It is data, never a literal in a component — the same block type appears more than once per page and each occurrence needs its own anchor. Types whose components arrive in Fase 3 gain the field with them.
-
-**Components exist for 7 of the 11 types.** Zod validates all eleven; `BlockRenderer` maps `header`, `hero`, `value-proposition`, `differentials`, `pricing`, `cta-form`, `footer`. A valid but unmapped type renders nothing rather than breaking the page. `trust-icons`, `stats`, `services` and `testimonials` get components in Fase 3.
-
-| Block `type`        | Key fields                                                                                          |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| `header`             | variant (`default`\|`centered`), background, logo, menuLinks[], ctaLabel, ctaWhatsapp, ctaMessage    |
-| `hero`               | variant (`default`\|`centered`), background, badgeText, headline, subheadline, ctaPrimaryLabel/Link, ctaSecondaryLabel/Link, image, imageAlt |
-| `trust-icons`        | items[]: { icon, text }                                                                                |
-| `stats`              | items[]: { number, label }                                                                             |
-| `value-proposition`  | headline, text, cards[]: { icon, title, description }                                                  |
-| `services`           | headline, tabs[]: { label, title, text, ctaLabel, ctaLink, image }                                     |
-| `differentials`      | background, headline, text, items[]: { icon, tag, text }                                               |
-| `testimonials`       | headline, items[]: { name, role, photo, text, rating }                                                 |
-| `cta-form`           | headline, subheadline, selectOptions[]: { label, value }, ctaLabel, whatsappNumber, whatsappMessage    |
-| `footer`             | logo, description, links[], phones[], schedule, socialLinks[], copyright, privacyLink                  |
-| `pricing`            | headline, subheadline, plans[], note                                                                    |
-
-**`Background`** shape (ADR-0005): `type` (`transparent`\|`solid`\|`gradient`\|`image`\|`fine-line-texture`\|`glass`, default `transparent`), `colorToken` (`primary`\|`secondary`\|`custom`), `customColor`/`gradientToCustom`, `gradientToToken`, `image`, `effect` (`none`\|`particles`). Absent/`transparent` shows whatever's behind the block. `lib/background.ts`'s `resolveBackground()` is the single place this shape turns into CSS.
+Blocks live in `landing_pages.blocks` (JSONB array), typed in `lib/types/blocks.ts` and validated in `lib/schemas/blocks.ts`. All eleven types have components; `BlockRenderer` maps every one. Full type table, the `Background` shape, `anchorId` convention, and theming detail: `.claude/rules/blocks.md`.
 
 ## 7. Lead Flow
 
@@ -164,13 +145,11 @@ No notification channels (email/WhatsApp) or retry queue in the MVP — deferred
 - Hooks: `camelCase` with `use` prefix
 - Route handlers: `kebab-case` folder + `route.ts` (App Router convention)
 - Migrations: timestamp prefix (e.g. `20240101000000_create_leads.sql`)
-
 ### React components
 - Server Components by default; `'use client'` only where interactivity requires it (forms, Turnstile widget)
 - Props must be typed with interfaces from `lib/types/blocks.ts`
 - No inline styles except where a runtime value can't be a Tailwind class (tenant colors, backgrounds — see ADR-0005)
 - No `console.log` in production code
-
 ### Git
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
 - **Always ask before committing**
@@ -205,12 +184,13 @@ Apply to every new endpoint, form, or database operation:
 
 **Fases 1–6 (Nuxt/Strapi stack) — SUPERSEDED.** See ADR-0007 and `docs/HISTORY.md` for what shipped and why it was dropped.
 
-**MVP rewrite phases** (`.claude/docs/MVP_REWRITE_CONTEXT.md`):
-- [x] Fase 0 — Reset repo, infra, docs — completed 2026-08-04. Next.js 16.3.0 + React 19.2.8 + Tailwind 4.3.3 + Zod 4.4.3; flat app at root, monorepo gone. Verified: `biome check` + `tsc --noEmit` clean, `next build` and `opennextjs-cloudflare build` pass, tenant resolution by `Host` header confirmed on **both** `next dev` (:3000) and `wrangler dev` (:8787, real workerd) including port stripping. Supabase local + cloud (`ofpnglnnzpowlzsyfbit`) migrated: `blocks jsonb` added, `strapi` schema + `webhook_retries` + retry cron + lead webhook dropped, anon/authenticated grants restored to least privilege. Not yet built (Fase 1+): `lib/schemas/blocks.ts`, `lib/supabase.ts`, `lib/background.ts`, `components/blocks/*`, `app/api/leads/` — `app/page.tsx` is still a stub that prints the resolved tenant host.
-- [x] Fase 1 — Core multi-tenant + Forge Company real content — completed 2026-08-05. Built `lib/supabase.ts` (cached `getLandingPageByHost`, publishable key), `lib/tenant.ts`, `lib/schemas/blocks.ts` (Zod for all 11 types), `lib/background.ts`, `lib/fonts.ts`; `app/layout.tsx` injects tenant CSS vars + fonts + `generateMetadata`, `app/page.tsx` renders blocks, `app/not-found.tsx` handles an unclaimed host. 7 block components + `BlockRenderer` + shared `Section`/`Seam`/`Eyebrow`/`CtaButton`/`MobileMenu`/`BackgroundParticles`. Forge Company's page ported from `forge_company_apresentacao.html` into the seed as 8 blocks; brand SVGs in `public/brand/`. Architecture decisions in ADR-0008. Verified: `biome check` + `tsc --noEmit` clean; all 4 seeded tenants resolve and an unknown host 404s on **both** `next dev` (:3000) and `wrangler dev` (:8787, real workerd), including static asset serving; bogus `variant` falls back to `default` (HTTP 200), a malformed block 500s naming the exact path (`blocks.4.plans.0.price`); layout measured over CDP (doc height 4329px, 8 blocks, all 6 anchors resolve). Not yet built (Fase 2+): `app/api/leads/`, the real lead form, `trust-icons`/`stats`/`services`/`testimonials` components.
-- [x] Fase 2 — Lead capture (form → Supabase) — completed 2026-08-05. `middleware.ts` matcher now includes `/api` so route handlers resolve the tenant through the one `x-tenant-host` path; new `lib/schemas/leads.ts` (Zod, every string length-capped), `lib/turnstile.ts` (siteverify, fail-closed in production), `lib/leads.ts` (the app's only write path, sole holder of the secret key), `app/api/leads/route.ts`, `types/turnstile.d.ts`. `CtaFormBlock` is now a Server Component wrapping the client `LeadForm` (fields + tenant `selectOptions` + explicit-render Turnstile widget + UTM capture + status machine), with the existing `whatsappNumber` kept as the secondary route. Migration `20260805000000_revoke_anon_lead_insert.sql` drops `anon_insert_leads` and revokes `anon` INSERT (applied local + cloud). `20260805000001_add_lead_domain.sql` adds `leads.domain not null`, backfilled from `landing_pages` — **local only; not yet pushed to cloud**. Trust boundary in ADR-0009. Verified: `biome check` + `tsc --noEmit` clean; on **both** `next dev` and `wrangler dev` (:8787, real workerd, including the outbound siteverify fetch) — 201 + row with the Host-derived `landing_page_id` and matching `domain`, unknown host 404 with zero rows written, a body supplying its own `landing_page_id`/`domain`/`status` stripped by Zod, `intent` from another tenant 400, over-length/missing fields 400, malformed JSON 400, empty token 403, and a genuine token against the always-fail secret 403 with nothing inserted; browser end-to-end on both runtimes (widget renders and solves, success state replaces the form, and on failure the alert shows, submit re-enables, typed values survive and the widget re-solves after reset). Not yet built (Fase 3+): `trust-icons`/`stats`/`services`/`testimonials` components, the real `whatsappNumber`.
-- [ ] Fase 3 — Second/third tenant (`dellaquila.dev`, `imobiliaria.forgecompany.example.com`)
-- [ ] Fase 4 — Deploy (Cloudflare Workers, 3 domains live)
+**MVP rewrite phases** (`.claude/docs/MVP_REWRITE_CONTEXT.md`). Full per-phase build + verification detail: `.claude/rules/phase-history.md`.
+- [x] Fase 0 — Reset repo, infra, docs — completed 2026-08-04.
+- [x] Fase 1 — Core multi-tenant + Forge Company real content — completed 2026-08-05.
+- [x] Fase 2 — Lead capture (form → Supabase) — completed 2026-08-05.
+- [x] Fase 3 — Second/third tenant — completed 2026-08-05.
+- [ ] Fase 4 — Deploy (Cloudflare Workers, 3 domains live) — in progress since 2026-08-05;
+      punch list in `.claude/rules/phase-history.md`'s Fase 4 entry.
 - [ ] Fase 5 — Visibility (Supabase Studio + Cloudflare Analytics)
 
 ## 12. Learnings
