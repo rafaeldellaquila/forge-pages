@@ -13,7 +13,41 @@ type Status = 'idle' | 'submitting' | 'success' | 'error'
 const FIELD =
   'bg-transparent border border-surface-line text-ink placeholder:text-ink-muted rounded-sm px-4 py-3 text-[0.95rem] outline-none transition-colors focus:border-tenant-primary'
 
+// Native <select> keeps its OS-drawn dropdown arrow under `appearance: auto`,
+// which renders in a color the theme has no control over — appearance-none
+// plus the inline chevron below is what makes it follow the tenant palette
+// like every other field.
+const SELECT_FIELD = `${FIELD} appearance-none pr-10`
+
+// Same accent the fields already use on focus (ADR-0002 rule 4 bans a
+// hardcoded error color) — reused here to flag a field that failed validation.
+const FIELD_INVALID = 'border-tenant-primary'
+
 const LABEL = 'font-tenant-secondary text-ink-dim text-[0.72rem] tracking-[0.08em] uppercase'
+
+const ERROR_TEXT = 'font-tenant-secondary text-tenant-primary text-[0.75rem]'
+
+// BR mobile format: DDD + 5-digit prefix + 4-digit line, e.g. "(11) 90000-0000".
+function formatWhatsapp(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length === 0) return ''
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+}
+
+function getWhatsappError(formatted: string) {
+  const digits = formatted.replace(/\D/g, '')
+  if (digits.length === 0) return undefined
+  return digits.length < 10 ? 'Informe um WhatsApp válido com DDD.' : undefined
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function getEmailError(value: string) {
+  if (value.trim().length === 0) return undefined
+  return EMAIL_PATTERN.test(value.trim()) ? undefined : 'Informe um e-mail válido.'
+}
 
 // The submit button mirrors CtaButton's primary tone. That component renders an
 // <a>, which a form cannot submit, so the classes are repeated rather than
@@ -36,6 +70,10 @@ export function LeadForm({ ctaLabel, selectOptions }: LeadFormProps) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   const [status, setStatus] = useState<Status>('idle')
   const [token, setToken] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
+  const [email, setEmail] = useState('')
+  const [whatsappError, setWhatsappError] = useState<string | undefined>(undefined)
+  const [emailError, setEmailError] = useState<string | undefined>(undefined)
   const widgetRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | undefined>(undefined)
 
@@ -56,6 +94,13 @@ export function LeadForm({ ctaLabel, selectOptions }: LeadFormProps) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    const whatsappValidation = getWhatsappError(whatsapp)
+    const emailValidation = getEmailError(email)
+    setWhatsappError(whatsappValidation)
+    setEmailError(emailValidation)
+    if (whatsappValidation || emailValidation) return
+
     setStatus('submitting')
 
     const form = new FormData(event.currentTarget)
@@ -66,8 +111,8 @@ export function LeadForm({ ctaLabel, selectOptions }: LeadFormProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: form.get('name'),
-        whatsapp: form.get('whatsapp'),
-        email: form.get('email') || undefined,
+        whatsapp,
+        email: email || undefined,
         message: form.get('message') || undefined,
         intent: form.get('intent') || undefined,
         turnstileToken: token,
@@ -114,31 +159,76 @@ export function LeadForm({ ctaLabel, selectOptions }: LeadFormProps) {
             name="whatsapp"
             type="tel"
             required
-            minLength={10}
-            maxLength={20}
             placeholder="(11) 90000-0000"
-            className={FIELD}
+            value={whatsapp}
+            onChange={(event) => {
+              setWhatsapp(formatWhatsapp(event.target.value))
+              if (whatsappError) setWhatsappError(undefined)
+            }}
+            onBlur={(event) => setWhatsappError(getWhatsappError(event.target.value))}
+            aria-invalid={whatsappError ? true : undefined}
+            aria-describedby={whatsappError ? 'whatsapp-error' : undefined}
+            className={`${FIELD} ${whatsappError ? FIELD_INVALID : ''}`}
           />
+          {whatsappError ? (
+            <span id="whatsapp-error" className={ERROR_TEXT}>
+              {whatsappError}
+            </span>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className={LABEL}>E-mail</span>
-          <input name="email" type="email" maxLength={180} className={FIELD} />
+          <input
+            name="email"
+            type="email"
+            maxLength={180}
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value)
+              if (emailError) setEmailError(undefined)
+            }}
+            onBlur={(event) => setEmailError(getEmailError(event.target.value))}
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? 'email-error' : undefined}
+            className={`${FIELD} ${emailError ? FIELD_INVALID : ''}`}
+          />
+          {emailError ? (
+            <span id="email-error" className={ERROR_TEXT}>
+              {emailError}
+            </span>
+          ) : null}
         </label>
 
         {selectOptions.length > 0 ? (
           <label className="flex flex-col gap-2">
             <span className={LABEL}>Setor</span>
-            <select name="intent" required defaultValue="" className={FIELD}>
-              <option value="" disabled>
-                Selecione
-              </option>
-              {selectOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+            <div className="relative">
+              <select name="intent" required defaultValue="" className={SELECT_FIELD}>
+                <option value="" disabled>
+                  Selecione
                 </option>
-              ))}
-            </select>
+                {selectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="text-ink-dim pointer-events-none absolute top-1/2 right-4 h-4 w-4 -translate-y-1/2"
+              >
+                <path
+                  d="M5 7.5L10 12.5L15 7.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
           </label>
         ) : null}
 
