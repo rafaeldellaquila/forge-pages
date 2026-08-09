@@ -12,22 +12,27 @@
   --tenant-background: #ffffff;
   --tenant-font: ui-sans-serif, system-ui, sans-serif;
   --tenant-font-secondary: ui-monospace, monospace;
+
+  /* Dark ramp — matches lib/theme.ts's DARK_RAMP, the default theme_mode. */
+  --tenant-surface: #2b2116;
+  --tenant-surface-line: #3d3123;
+  --tenant-ink: #f3eadb;
+  --tenant-ink-dim: #c9bfac;
+  --tenant-ink-muted: #9c9184;
 }
 
 /*
- * Neutrals do not vary per tenant today, so they may be literal (ADR-0002 rule
- * 4 permits it). They are tuned for a dark surface, which is what the only
- * tenant with content currently uses.
- *
- * KNOWN GAP: a light tenant needs a different neutral ramp. Revisit in Fase 3,
- * when the second and third tenants get real content.
+ * Neutrals are per-tenant since ADR-0010: --tenant-surface/-ink/etc. are set on
+ * <html> by app/layout.tsx from lib/theme.ts's resolveNeutralTheme(), picked by
+ * theme_mode. This block only re-exports them as Tailwind tokens so components
+ * keep using ordinary utilities (bg-surface, text-ink) — never a literal.
  */
 @theme {
-  --color-surface: #2b2116;
-  --color-surface-line: #3d3123;
-  --color-ink: #f3eadb;
-  --color-ink-dim: #c9bfac;
-  --color-ink-muted: #9c9184;
+  --color-surface: var(--tenant-surface);
+  --color-surface-line: var(--tenant-surface-line);
+  --color-ink: var(--tenant-ink);
+  --color-ink-dim: var(--tenant-ink-dim);
+  --color-ink-muted: var(--tenant-ink-muted);
 
   --color-tenant-primary: var(--tenant-primary);
   --color-tenant-secondary: var(--tenant-secondary);

@@ -16,7 +16,7 @@ import type { Background, LandingPageConfig } from '@/lib/types/blocks'
 const LANDING_PAGE_COLUMNS = `
   id, client_id, domain, render_mode, status,
   seo_title, seo_description, seo_og_image, canonical_url,
-  primary_color, secondary_color, font_family, secondary_font_family,
+  primary_color, secondary_color, font_family, secondary_font_family, theme_mode,
   background_type, background_color_token, background_color_custom,
   background_gradient_to_token, background_gradient_to_custom, background_image_url,
   divider_glyph, blocks
@@ -36,6 +36,7 @@ interface LandingPageRow {
   secondary_color: string | null
   font_family: string | null
   secondary_font_family: string | null
+  theme_mode: string
   background_type: string | null
   background_color_token: string | null
   background_color_custom: string | null
@@ -115,6 +116,7 @@ export const getLandingPageByHost = cache(
       secondaryColor: data.secondary_color,
       fontFamily: data.font_family,
       secondaryFontFamily: data.secondary_font_family,
+      themeMode: data.theme_mode === 'light' ? 'light' : 'dark',
       background: toBackground(data),
       dividerGlyph: data.divider_glyph,
       blocks: parseBlocks(data.blocks, data.domain),

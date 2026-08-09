@@ -40,6 +40,7 @@ export interface LandingPageConfig {
   secondaryColor: string | null
   fontFamily: string | null
   secondaryFontFamily: string | null
+  themeMode: 'dark' | 'light'
   background: Background | null
   dividerGlyph: string | null
   blocks: BlockType[]
@@ -114,11 +115,13 @@ export interface HeroBlock {
 
 export interface TrustIconsBlock {
   type: 'trust-icons'
+  anchorId?: string
   items: { icon: string; text: string }[]
 }
 
 export interface StatsBlock {
   type: 'stats'
+  anchorId?: string
   items: { number: string; label: string }[]
 }
 
@@ -133,6 +136,7 @@ export interface ValuePropositionBlock {
 
 export interface ServicesBlock {
   type: 'services'
+  anchorId?: string
   headline: string
   tabs: {
     label: string
@@ -156,6 +160,7 @@ export interface DifferentialsBlock {
 
 export interface TestimonialsBlock {
   type: 'testimonials'
+  anchorId?: string
   headline: string
   items: {
     name: string

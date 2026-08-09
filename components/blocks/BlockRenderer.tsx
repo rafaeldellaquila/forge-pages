@@ -4,7 +4,11 @@ import { FooterBlock } from '@/components/blocks/FooterBlock'
 import { HeaderBlock } from '@/components/blocks/HeaderBlock'
 import { HeroBlock } from '@/components/blocks/HeroBlock'
 import { PricingBlock } from '@/components/blocks/PricingBlock'
+import { ServicesBlock } from '@/components/blocks/ServicesBlock'
+import { StatsBlock } from '@/components/blocks/StatsBlock'
 import { Seam } from '@/components/blocks/shared/Seam'
+import { TestimonialsBlock } from '@/components/blocks/TestimonialsBlock'
+import { TrustIconsBlock } from '@/components/blocks/TrustIconsBlock'
 import { ValuePropositionBlock } from '@/components/blocks/ValuePropositionBlock'
 import type { BlockType } from '@/lib/types/blocks'
 
@@ -15,21 +19,28 @@ import type { BlockType } from '@/lib/types/blocks'
 // A switch rather than a lookup object: it narrows the discriminated union to
 // each component's own props, so the mapping is checked instead of asserted.
 //
-// The mapping is deliberately partial. lib/schemas/blocks.ts validates all
-// eleven block types, but only the ones with a component render — a valid yet
-// unmapped type renders nothing instead of breaking the page. trust-icons,
-// stats, services and testimonials get their components in Fase 3, when the
-// second and third tenants need them.
+// All eleven types lib/schemas/blocks.ts validates now have a component. A
+// valid-but-unmapped type still renders nothing rather than breaking the page —
+// that fallback stays in place for any future block type added ahead of its
+// component.
 function renderBlock(block: BlockType) {
   switch (block.type) {
     case 'header':
       return <HeaderBlock {...block} />
     case 'hero':
       return <HeroBlock {...block} />
+    case 'trust-icons':
+      return <TrustIconsBlock {...block} />
+    case 'stats':
+      return <StatsBlock {...block} />
     case 'value-proposition':
       return <ValuePropositionBlock {...block} />
+    case 'services':
+      return <ServicesBlock {...block} />
     case 'differentials':
       return <DifferentialsBlock {...block} />
+    case 'testimonials':
+      return <TestimonialsBlock {...block} />
     case 'pricing':
       return <PricingBlock {...block} />
     case 'cta-form':
