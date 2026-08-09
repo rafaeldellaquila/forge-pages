@@ -63,11 +63,13 @@ const heroSchema = z.object({
 
 const trustIconsSchema = z.object({
   type: z.literal('trust-icons'),
+  anchorId: z.string().optional(),
   items: z.array(z.object({ icon: z.string(), text: z.string() })),
 })
 
 const statsSchema = z.object({
   type: z.literal('stats'),
+  anchorId: z.string().optional(),
   items: z.array(z.object({ number: z.string(), label: z.string() })),
 })
 
@@ -89,6 +91,7 @@ const valuePropositionSchema = z.object({
 
 const servicesSchema = z.object({
   type: z.literal('services'),
+  anchorId: z.string().optional(),
   headline: z.string(),
   tabs: z.array(
     z.object({
@@ -120,6 +123,7 @@ const differentialsSchema = z.object({
 
 const testimonialsSchema = z.object({
   type: z.literal('testimonials'),
+  anchorId: z.string().optional(),
   headline: z.string(),
   items: z.array(
     z.object({

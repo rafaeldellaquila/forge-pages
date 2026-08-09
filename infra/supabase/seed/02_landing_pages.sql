@@ -124,7 +124,6 @@ insert into public.landing_pages
         "anchorId": "hero",
         "variant": "centered",
         "background": { "type": "transparent", "effect": "particles" },
-        "image": { "url": "/brand/logo_negative.svg", "alternativeText": "Forge Co. — Built to Convert" },
         "headline": "Marketing forjado sob medida",
         "subheadline": "Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio — sem propostas de prateleira.",
         "ctaPrimaryLabel": "Ver pacotes ⚒️",
@@ -253,6 +252,301 @@ insert into public.landing_pages
         "phones": [],
         "socialLinks": [],
         "copyright": "FORGE CO. — MARKETING FORJADO SOB MEDIDA · © 2026"
+      }
+    ]'::jsonb
+  );
+
+-- Fase 3: second and third tenants. Both exercise the four block types
+-- (trust-icons, stats, services, testimonials) BlockRenderer only gained this
+-- phase, and between them cover both theme_mode ramps (ADR-0010).
+--
+-- dellaquila.dev is the maintainer's own real domain — example/portfolio copy,
+-- no fabricated client testimonials under a real identity (see ADR-0010 /
+-- Fase 3 planning notes). imobiliaria.forgecompany.example.com is a fictional demo
+-- agency (per MVP_REWRITE_CONTEXT.md §3): its testimonials are clearly
+-- invented placeholder names, same spirit as the Forge Motos/Clínica/
+-- Advocacia placeholder businesses above.
+--
+-- Both cta-form whatsappNumber values are placeholders — replace before
+-- promoting either row to its real domain (Fase 4), same as Forge Company's.
+insert into public.landing_pages
+  (id, client_id, domain, status, seo_title, seo_description,
+   primary_color, secondary_color, font_family, secondary_font_family, theme_mode,
+   background_type, background_color_token, background_color_custom, divider_glyph, blocks) values
+  (
+    '00000000-0000-0000-0001-000000000005',
+    '00000000-0000-0000-0000-000000000005',
+    'dellaquila.localhost',
+    'published',
+    'Rafael Dellaquila — Software sob medida',
+    'Desenvolvimento full-stack sob medida: aplicações web, landing pages e consultoria técnica com TypeScript, React e Node.',
+    '#3454D1',
+    '#F2A93B',
+    'Inter',
+    'JetBrains Mono',
+    'light',
+    'solid',
+    'custom',
+    '#eeebe4',
+    '</>',
+    '[
+      {
+        "type": "header",
+        "variant": "default",
+        "menuLinks": [
+          { "label": "Serviços", "url": "#servicos" },
+          { "label": "Diferenciais", "url": "#diferenciais" },
+          { "label": "Contato", "url": "#contato" }
+        ],
+        "ctaLabel": "Vamos conversar",
+        "ctaLink": "#contato"
+      },
+      {
+        "type": "hero",
+        "anchorId": "hero",
+        "variant": "default",
+        "badgeText": "Disponível para novos projetos",
+        "headline": "Software sob medida, do primeiro commit ao deploy",
+        "subheadline": "Desenvolvimento full-stack para quem precisa de um sistema que funciona de verdade — sem prateleira, sem gambiarra, com código que dá pra manter.",
+        "ctaPrimaryLabel": "Ver serviços",
+        "ctaPrimaryLink": "#servicos",
+        "ctaSecondaryLabel": "Falar comigo",
+        "ctaSecondaryLink": "#contato"
+      },
+      {
+        "type": "trust-icons",
+        "items": [
+          { "icon": "⚡", "text": "Entrega ágil, sem enrolação" },
+          { "icon": "🔒", "text": "Código seguro por padrão" },
+          { "icon": "🧩", "text": "Stack moderna (TypeScript, React, Node)" }
+        ]
+      },
+      {
+        "type": "stats",
+        "anchorId": "numeros",
+        "items": [
+          { "number": "+5 anos", "label": "de experiência" },
+          { "number": "+20", "label": "projetos entregues" },
+          { "number": "100%", "label": "remoto" },
+          { "number": "<48h", "label": "tempo de resposta" }
+        ]
+      },
+      {
+        "type": "services",
+        "anchorId": "servicos",
+        "headline": "O que eu construo",
+        "tabs": [
+          {
+            "label": "Web Apps",
+            "title": "Aplicações web sob medida",
+            "text": "Sistemas internos, dashboards e produtos digitais construídos com TypeScript, React e Node — pensados para durar, não para remendar.",
+            "ctaLabel": "Quero um orçamento",
+            "ctaLink": "#contato"
+          },
+          {
+            "label": "Landing Pages",
+            "title": "Landing pages que convertem",
+            "text": "Páginas rápidas, responsivas e fáceis de editar — como esta plataforma, aliás.",
+            "ctaLabel": "Quero uma página",
+            "ctaLink": "#contato"
+          },
+          {
+            "label": "Consultoria",
+            "title": "Consultoria técnica",
+            "text": "Revisão de arquitetura, code review e mentoria para times que precisam de um segundo par de olhos sênior.",
+            "ctaLabel": "Agendar conversa",
+            "ctaLink": "#contato"
+          }
+        ]
+      },
+      {
+        "type": "differentials",
+        "anchorId": "diferenciais",
+        "eyebrow": "⚙️ Como eu trabalho",
+        "headline": "Sem prateleira, sem gambiarra",
+        "text": "Todo projeto começa entendendo o problema de verdade antes de abrir o editor — não empurrando um template genérico.",
+        "items": [
+          { "tag": "SEM", "text": "código copiado de tutorial sem entender o porquê" },
+          { "tag": "SEM", "text": "promessa de prazo impossível" },
+          { "tag": "COM", "text": "comunicação direta, sem intermediário ✅" },
+          { "tag": "COM", "text": "código documentado e testável" }
+        ]
+      },
+      {
+        "type": "cta-form",
+        "anchorId": "contato",
+        "headline": "Vamos construir o próximo projeto?",
+        "subheadline": "Conte um pouco sobre a ideia — eu respondo com os próximos passos.",
+        "selectOptions": [
+          { "label": "Aplicação web", "value": "web-app" },
+          { "label": "Landing page", "value": "landing-page" },
+          { "label": "Consultoria técnica", "value": "consultoria" },
+          { "label": "Outro", "value": "outro" }
+        ],
+        "ctaLabel": "Enviar mensagem",
+        "whatsappNumber": "5511900000001",
+        "whatsappMessage": "Olá! Vim pelo site e quero conversar sobre um projeto."
+      },
+      {
+        "type": "footer",
+        "links": [],
+        "phones": [],
+        "socialLinks": [],
+        "copyright": "RAFAEL DELLAQUILA · © 2026"
+      }
+    ]'::jsonb
+  ),
+  (
+    '00000000-0000-0000-0001-000000000006',
+    '00000000-0000-0000-0000-000000000006',
+    'imobiliaria.localhost',
+    'published',
+    'Horizonte Imóveis — Seu próximo endereço',
+    'Compra, venda e locação de imóveis com acompanhamento próximo, do primeiro contato à assinatura do contrato.',
+    '#0F6E5C',
+    '#D9A441',
+    'Poppins',
+    'Inter',
+    'dark',
+    'solid',
+    'custom',
+    '#101820',
+    '🏠',
+    '[
+      {
+        "type": "header",
+        "variant": "default",
+        "menuLinks": [
+          { "label": "Diferenciais", "url": "#diferenciais" },
+          { "label": "Serviços", "url": "#servicos" },
+          { "label": "Depoimentos", "url": "#depoimentos" }
+        ],
+        "ctaLabel": "Fale com um corretor",
+        "ctaLink": "#contato"
+      },
+      {
+        "type": "hero",
+        "anchorId": "hero",
+        "variant": "default",
+        "badgeText": "Atendimento personalizado",
+        "headline": "Seu próximo endereço começa aqui",
+        "subheadline": "Compra, venda e locação com acompanhamento de perto, do primeiro contato até a assinatura do contrato.",
+        "ctaPrimaryLabel": "Falar com um corretor",
+        "ctaPrimaryLink": "#contato",
+        "ctaSecondaryLabel": "Conhecer a Horizonte",
+        "ctaSecondaryLink": "#diferenciais"
+      },
+      {
+        "type": "trust-icons",
+        "items": [
+          { "icon": "📄", "text": "Documentação sem dor de cabeça" },
+          { "icon": "🤝", "text": "Atendimento humano, sem robôs" },
+          { "icon": "📍", "text": "Especialistas na sua região" }
+        ]
+      },
+      {
+        "type": "differentials",
+        "anchorId": "diferenciais",
+        "eyebrow": "Por que a Horizonte",
+        "headline": "Imobiliária não devia ser sinônimo de burocracia",
+        "text": "Trabalhamos com poucos clientes por vez para dar atenção real a cada negociação — do primeiro contato até a entrega das chaves.",
+        "items": [
+          { "tag": "SEM", "text": "corretor que some depois da visita" },
+          { "tag": "SEM", "text": "letra miúda no contrato" },
+          { "tag": "COM", "text": "acompanhamento até a entrega das chaves ✅" }
+        ]
+      },
+      {
+        "type": "services",
+        "anchorId": "servicos",
+        "headline": "Como podemos ajudar",
+        "tabs": [
+          {
+            "label": "Compra",
+            "title": "Encontre o imóvel certo",
+            "text": "Selecionamos opções alinhadas ao seu orçamento e às suas prioridades — sem visitas perdidas.",
+            "ctaLabel": "Quero comprar",
+            "ctaLink": "#contato"
+          },
+          {
+            "label": "Venda",
+            "title": "Venda com o preço justo",
+            "text": "Avaliação de mercado, fotos profissionais e divulgação para vender no prazo certo.",
+            "ctaLabel": "Quero vender",
+            "ctaLink": "#contato"
+          },
+          {
+            "label": "Aluguel",
+            "title": "Locação sem complicação",
+            "text": "Análise de cadastro rápida e contrato revisado por especialistas.",
+            "ctaLabel": "Quero alugar",
+            "ctaLink": "#contato"
+          },
+          {
+            "label": "Consultoria",
+            "title": "Consultoria imobiliária",
+            "text": "Orientação para investidores sobre onde e quando comprar.",
+            "ctaLabel": "Agendar conversa",
+            "ctaLink": "#contato"
+          }
+        ]
+      },
+      {
+        "type": "stats",
+        "anchorId": "numeros",
+        "items": [
+          { "number": "+300", "label": "imóveis negociados" },
+          { "number": "12 anos", "label": "de mercado" },
+          { "number": "4.9/5", "label": "satisfação dos clientes" },
+          { "number": "15 dias", "label": "tempo médio de venda" }
+        ]
+      },
+      {
+        "type": "testimonials",
+        "anchorId": "depoimentos",
+        "headline": "Quem já negociou com a gente",
+        "items": [
+          {
+            "name": "Camila Rezende",
+            "role": "Comprou apartamento em 2025",
+            "text": "Encontramos o apartamento em três semanas e a documentação toda foi tranquila. Nunca fiquei sem resposta.",
+            "rating": 5
+          },
+          {
+            "name": "Eduardo Farias",
+            "role": "Vendeu casa em 2024",
+            "text": "Venderam minha casa pelo valor que eu esperava, sem pressão pra baixar o preço. Recomendo.",
+            "rating": 5
+          },
+          {
+            "name": "Beatriz Nogueira",
+            "role": "Alugou sala comercial",
+            "text": "Processo de locação rápido e contrato bem explicado, sem letra miúda escondida.",
+            "rating": 4
+          }
+        ]
+      },
+      {
+        "type": "cta-form",
+        "anchorId": "contato",
+        "headline": "Vamos encontrar seu próximo endereço?",
+        "subheadline": "Conte o que você procura que a gente entra em contato com opções reais, não genéricas.",
+        "selectOptions": [
+          { "label": "Quero comprar", "value": "comprar" },
+          { "label": "Quero vender", "value": "vender" },
+          { "label": "Quero alugar", "value": "alugar" },
+          { "label": "Sou investidor", "value": "investidor" }
+        ],
+        "ctaLabel": "Falar com um corretor",
+        "whatsappNumber": "5511900000002",
+        "whatsappMessage": "Olá! Vim pelo site da Horizonte Imóveis e quero saber mais."
+      },
+      {
+        "type": "footer",
+        "links": [],
+        "phones": [],
+        "socialLinks": [],
+        "copyright": "HORIZONTE IMÓVEIS · © 2026"
       }
     ]'::jsonb
   );

@@ -7,3 +7,10 @@ insert into public.clients (id, name, email, whatsapp) values
 -- whatsapp is a placeholder pending Fase E (see CLAUDE.md); replace before publishing to prod.
 insert into public.clients (id, name, email, whatsapp) values
   ('00000000-0000-0000-0000-000000000004', 'Forge Company', 'contato@forgecompany.example.com', '5511900000000');
+
+-- Fase 3: second and third tenants (real domain + fictional demo). Both
+-- whatsapp numbers are placeholders, same convention as every row above —
+-- replace before promoting either row to its real domain (Fase 4).
+insert into public.clients (id, name, email, whatsapp) values
+  ('00000000-0000-0000-0000-000000000005', 'Rafael Dellaquila', 'rafael@dellaquila.dev', '5511900000001'),
+  ('00000000-0000-0000-0000-000000000006', 'Horizonte Imóveis', 'contato@horizonteimoveis.com.br', '5511900000002');

@@ -4,6 +4,7 @@ import './globals.css'
 import { resolveBackground, resolveBackgroundBaseColor } from '@/lib/background'
 import { fontVariableClassNames, resolveFontFamily } from '@/lib/fonts'
 import { getCurrentTenant } from '@/lib/tenant'
+import { resolveNeutralTheme } from '@/lib/theme'
 
 // Both this layout and app/page.tsx read the tenant through the request-scoped
 // cache in lib/supabase.ts, so the extra call here costs no extra query.
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     '--tenant-font-secondary': tenant
       ? resolveFontFamily(tenant.secondaryFontFamily ?? tenant.fontFamily)
       : undefined,
+    ...resolveNeutralTheme(tenant?.themeMode),
   } as CSSProperties
 
   return (
