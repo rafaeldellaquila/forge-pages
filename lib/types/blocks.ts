@@ -134,9 +134,12 @@ export interface ValuePropositionBlock {
   cards: { icon: string; title: string; description: string; stepLabel?: string }[]
 }
 
+export type ServicesVariant = 'default' | 'image-left'
+
 export interface ServicesBlock {
   type: 'services'
   anchorId?: string
+  variant?: ServicesVariant
   headline: string
   tabs: {
     label: string

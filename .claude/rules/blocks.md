@@ -27,7 +27,7 @@ component.
 | `trust-icons`        | items[]: { icon, text }                                                                                |
 | `stats`              | items[]: { number, label }                                                                             |
 | `value-proposition`  | headline, text, cards[]: { icon, title, description }                                                  |
-| `services`           | headline, tabs[]: { label, title, text, ctaLabel, ctaLink, image } — the one block with client-side state (tab switching, `components/blocks/shared/ServiceTabs.tsx`) |
+| `services`           | variant (`default`\|`image-left`), headline, tabs[]: { label, title, text, ctaLabel, ctaLink, image } — the one block with client-side state (tab switching, `components/blocks/shared/ServiceTabs.tsx`). When a tab's `image` is absent the grid collapses to one column regardless of `variant`. |
 | `differentials`      | background, headline, text, items[]: { icon, tag, text }                                               |
 | `testimonials`       | headline, items[]: { name, role, photo, text, rating }                                                 |
 | `cta-form`           | headline, subheadline, selectOptions[]: { label, value }, ctaLabel, whatsappNumber, whatsappMessage    |
