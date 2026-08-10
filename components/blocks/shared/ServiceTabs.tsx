@@ -2,14 +2,21 @@
 
 import { useState } from 'react'
 import { CtaButton } from '@/components/blocks/shared/CtaButton'
-import type { ServicesBlock } from '@/lib/types/blocks'
+import type { ServicesBlock, ServicesVariant } from '@/lib/types/blocks'
 
 type Tab = ServicesBlock['tabs'][number]
 
+interface ServiceTabsProps {
+  tabs: Tab[]
+  variant: ServicesVariant
+}
+
 /** Tab switcher for the services block — the one piece of it that needs state. */
-export function ServiceTabs({ tabs }: { tabs: Tab[] }) {
+export function ServiceTabs({ tabs, variant }: ServiceTabsProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const active = tabs[activeIndex]
+  const hasImage = Boolean(active.image)
+  const imageLeft = hasImage && variant === 'image-left'
 
   return (
     <div>
@@ -30,8 +37,8 @@ export function ServiceTabs({ tabs }: { tabs: Tab[] }) {
         ))}
       </div>
 
-      <div className="grid items-center gap-12 lg:grid-cols-2">
-        <div>
+      <div className={`grid items-center gap-12 ${hasImage ? 'lg:grid-cols-2' : ''}`}>
+        <div className={imageLeft ? 'lg:order-2' : ''}>
           <h3 className="text-ink mb-4 text-[1.6rem]">{active.title}</h3>
           <p className="text-ink-dim text-[1rem]">{active.text}</p>
           {active.ctaLabel && active.ctaLink ? (
@@ -48,7 +55,7 @@ export function ServiceTabs({ tabs }: { tabs: Tab[] }) {
           <img
             src={active.image.url}
             alt={active.image.alternativeText ?? ''}
-            className="w-full rounded-md object-cover"
+            className={`w-full rounded-md object-cover ${imageLeft ? 'lg:order-1' : ''}`}
           />
         ) : null}
       </div>

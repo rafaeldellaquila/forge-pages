@@ -92,6 +92,7 @@ const valuePropositionSchema = z.object({
 const servicesSchema = z.object({
   type: z.literal('services'),
   anchorId: z.string().optional(),
+  variant: variantSchema(['default', 'image-left']),
   headline: z.string(),
   tabs: z.array(
     z.object({

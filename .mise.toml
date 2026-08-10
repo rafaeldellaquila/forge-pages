@@ -21,6 +21,10 @@ run = "next dev"
 description = "Build via OpenNext and serve on the local Workers runtime (port 8787)"
 run = "opennextjs-cloudflare build && wrangler dev"
 
+[tasks.storybook]
+description = "Start Storybook for local block component previews (port 6006)"
+run = "storybook dev -p 6006"
+
 # ─── Quality ─────────────────────────────────────────────────────────────────
 
 [tasks.lint]
