@@ -45,3 +45,6 @@ infra/supabase/.temp/
 # Misc
 .cache/
 coverage/
+
+*storybook.log
+storybook-static

@@ -132,3 +132,58 @@ Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (
   succeeds and the app 500s on first Supabase/Turnstile access. Fixed by adding
   `cloudflare/wrangler-action`'s `secrets:` input (`wrangler secret bulk`) to the deploy
   step — not yet run for real, since `deploy.yml`'s trigger is still commented out.
+
+### 2026-08-09: `services` position variant + reflow fix, local Storybook
+
+- **`ServiceTabs.tsx`'s `lg:grid-cols-2` was a real, live bug, not a hypothetical.**
+  Both existing tenants that use the `services` block (`dellaquila.localhost`,
+  `imobiliaria.localhost`) have zero images on any tab — every tab's `image` field is
+  simply absent from the seed JSON. Pre-fix, that meant a permanently empty second grid
+  column on two production-seeded pages, not just an edge case. The fix (`hasImage` gate on
+  `lg:grid-cols-2`, `components/blocks/shared/ServiceTabs.tsx`) is a visible improvement to
+  already-seeded content, confirmed by rendering the exact same component (not a mock) in
+  Storybook with the same "no image" shape those tenants' JSON has.
+- **`create-storybook@latest --yes` installs far more than "a Next.js preview tool."**
+  Its default feature set added `@chromatic-com/storybook` (a cloud visual-testing SaaS
+  addon), a full `@storybook/addon-vitest` + `vitest` + `playwright` + browser-binary
+  testing stack, and `@storybook/addon-mcp` (AI-agent integration) — none requested, and
+  Playwright's browser binaries got downloaded to disk before anyone reviewed the addon
+  list. `--features` doesn't scope this away; the trim has to happen after install by
+  editing `package.json`'s devDependencies, `.storybook/main.ts`'s `addons` array, and
+  deleting the generated `vitest.config.ts`/`vitest.shims.d.ts`/`stories/` boilerplate,
+  then `pnpm install` again. **Review the installer's dependency list before accepting
+  it** — don't assume "init" scopes itself to what was asked.
+- **The installer pins `vite` to the literal string `"latest"`** in `package.json`
+  (not a resolved semver range like every other dependency in the file) — inconsistent
+  with the rest of the project's caret-pinned convention. Re-pin it to the resolved
+  version (`node_modules/vite/package.json`'s `"version"`) after install.
+- **Framework auto-detection worked cleanly**: `@storybook/nextjs-vite` (Vite-based, the
+  actively developed framework) was auto-selected over the older Webpack-based
+  `@storybook/nextjs` with no prompt, because this repo has no custom Webpack/Babel
+  config to preserve. It also normalizes Tailwind v4's PostCSS plugin array format
+  automatically — no manual config needed for `@import "tailwindcss"` to work in
+  `.storybook/preview.tsx`.
+- **No RSC mocking needed.** Every block component is a pure, synchronous,
+  props-driven Server Component (confirmed by grepping for `'use client'`,
+  `getCurrentTenant()`, `cookies()`, `headers()` under `components/blocks/` — none of the
+  11 top-level block components use any of them). Storybook's `experimentalRSC` flag,
+  meant for async Server Components using Suspense, is irrelevant here.
+- **`app/globals.css`'s `:root` fallback tenant CSS custom properties are already a
+  complete mock.** Importing it directly into `.storybook/preview.tsx` renders every
+  block correctly with zero additional setup — no fake `--tenant-*` values needed, since
+  the fallback ramp (dark theme, black/white brand colors) was already designed for the
+  404 page's no-tenant-resolved case, which is structurally the same situation as a
+  Storybook story.
+- **`LeadForm.tsx` degrades safely with no `NEXT_PUBLIC_TURNSTILE_SITE_KEY`** (unset in
+  Storybook's Vite env by default): `siteKey` is falsy, so the Turnstile `<Script>` and
+  `renderWidget()` both no-op and the rest of the form renders normally — no crash, no
+  story-specific mocking required for `CtaFormBlock`.
+- **The Playwright MCP server's `chrome` channel still isn't installed in this
+  environment** (same trap as Fase 1/3's learnings) — `mcp__playwright__browser_navigate`
+  fails with `Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome`.
+  Same workaround: drive `playwright-core` directly via `NODE_PATH` pointed at a sibling
+  project's `node_modules` (this repo doesn't install `playwright-core` itself), using the
+  cached binary at `~/.cache/ms-playwright/chromium-<rev>/chrome-linux64/chrome`. New
+  wrinkle this time: a `favicon.ico` 404 on the very first page load of a fresh browser
+  profile is Chrome's own automatic favicon probe, unrelated to the app — don't mistake it
+  for a real console error when checking a page for zero-error rendering.
