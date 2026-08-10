@@ -17,13 +17,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!tenant) return { title: 'forge-pages' }
 
+  // Without this, Next resolves relative icon/OG-image URLs against
+  // http://localhost:PORT (its documented fallback when metadataBase is
+  // unset) — silently wrong in production for the relative /public paths
+  // this app already uses (e.g. header.logo.url).
+  const metadataBase = new URL(`https://${tenant.domain}`)
+
   return {
+    metadataBase,
     title: tenant.seoTitle ?? tenant.domain,
     description: tenant.seoDescription ?? undefined,
     alternates: tenant.canonicalUrl ? { canonical: tenant.canonicalUrl } : undefined,
+    icons: tenant.faviconUrl ? { icon: tenant.faviconUrl } : undefined,
     openGraph: {
       title: tenant.seoTitle ?? tenant.domain,
       description: tenant.seoDescription ?? undefined,
+      type: 'website',
       images: tenant.seoOgImage ? [tenant.seoOgImage] : undefined,
     },
   }

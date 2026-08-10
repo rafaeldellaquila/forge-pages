@@ -8,13 +8,14 @@
 -- renders a themed-but-empty page (useful for testing the empty state). Real
 -- tenant content is authored in Supabase Studio.
 insert into public.landing_pages
-  (id, client_id, domain, status, seo_title, primary_color, secondary_color, font_family, blocks) values
+  (id, client_id, domain, status, seo_title, seo_description, primary_color, secondary_color, font_family, blocks) values
   (
     '00000000-0000-0000-0001-000000000001',
     '00000000-0000-0000-0000-000000000001',
     'forge-motos.localhost',
     'published',
-    'Forge Motos — Sua moto nova está aqui',
+    'Forge Motos. Sua moto nova está aqui.',
+    'Motos seminovas revisadas, com garantia de 12 meses, documentação sem custo e financiamento em até 48x. Confira o estoque e fale com um consultor.',
     '#e94560',
     '#065a82',
     'Inter',
@@ -58,6 +59,7 @@ insert into public.landing_pages
     'clinica.localhost',
     'published',
     'Clínica Exemplo — Cuidando de você',
+    'Atendimento médico humanizado, com agendamento simples e acompanhamento próximo em cada etapa do tratamento.',
     '#0ea5e9',
     '#0f766e',
     'Poppins',
@@ -69,6 +71,7 @@ insert into public.landing_pages
     'advocacia.localhost',
     'published',
     'Advocacia Prime — Defesa que faz a diferença',
+    'Assessoria jurídica dedicada, com atendimento personalizado e defesa comprometida com o melhor resultado para cada cliente.',
     '#1e3a5f',
     '#c9a227',
     'Merriweather',
@@ -86,8 +89,13 @@ insert into public.landing_pages
 --
 -- The cta-form's whatsappNumber is still the placeholder from 01_clients.sql — replace it
 -- before this row is promoted to the real domain.
+-- favicon_url uses icon_positive.svg (dark #2B2116 fill), not icon_negative.svg (cream
+-- fill) despite the tenant's own dark theme_mode: browser tab/bookmark chrome is
+-- light regardless of page theme, so the light-fill variant would be nearly invisible
+-- there. Distinct from header.logo.url below, which correctly uses the negative
+-- (light) variant because that renders against the tenant's own dark page background.
 insert into public.landing_pages
-  (id, client_id, domain, status, seo_title, seo_description,
+  (id, client_id, domain, status, seo_title, seo_description, favicon_url,
    primary_color, secondary_color, font_family, secondary_font_family,
    background_type, background_color_token, background_color_custom, divider_glyph, blocks) values
   (
@@ -95,8 +103,9 @@ insert into public.landing_pages
     '00000000-0000-0000-0000-000000000004',
     'forgecompany.localhost',
     'published',
-    'Forge Co. — Marketing forjado sob medida',
+    'Forge Co. Marketing forjado sob medida.',
     'Marketing digital forjado, não copiado. Estratégia, tráfego pago e criativos feitos sob medida para o seu negócio.',
+    '/brand/icon_positive.svg',
     '#FF6A2C',
     '#FFBA4A',
     'Montserrat',

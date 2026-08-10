@@ -36,6 +36,7 @@ export interface LandingPageConfig {
   seoDescription: string | null
   seoOgImage: string | null
   canonicalUrl: string | null
+  faviconUrl: string | null
   primaryColor: string | null
   secondaryColor: string | null
   fontFamily: string | null

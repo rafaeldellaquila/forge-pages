@@ -93,7 +93,7 @@ id, name, email, whatsapp, created_at
 ### landing_pages
 ```sql
 id, client_id, domain (unique), render_mode ('blocks'|'custom', default 'blocks'), status ('draft'|'published'|'archived')
-seo_title, seo_description, seo_og_image, canonical_url
+seo_title, seo_description, seo_og_image, canonical_url, favicon_url
 primary_color, secondary_color, font_family, secondary_font_family
 theme_mode ('dark'|'light', default 'dark')
 background_type, background_color_token, background_color_custom,

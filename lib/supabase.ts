@@ -15,7 +15,7 @@ import type { Background, LandingPageConfig } from '@/lib/types/blocks'
 
 const LANDING_PAGE_COLUMNS = `
   id, client_id, domain, render_mode, status,
-  seo_title, seo_description, seo_og_image, canonical_url,
+  seo_title, seo_description, seo_og_image, canonical_url, favicon_url,
   primary_color, secondary_color, font_family, secondary_font_family, theme_mode,
   background_type, background_color_token, background_color_custom,
   background_gradient_to_token, background_gradient_to_custom, background_image_url,
@@ -32,6 +32,7 @@ interface LandingPageRow {
   seo_description: string | null
   seo_og_image: string | null
   canonical_url: string | null
+  favicon_url: string | null
   primary_color: string | null
   secondary_color: string | null
   font_family: string | null
@@ -112,6 +113,7 @@ export const getLandingPageByHost = cache(
       seoDescription: data.seo_description,
       seoOgImage: data.seo_og_image,
       canonicalUrl: data.canonical_url,
+      faviconUrl: data.favicon_url,
       primaryColor: data.primary_color,
       secondaryColor: data.secondary_color,
       fontFamily: data.font_family,

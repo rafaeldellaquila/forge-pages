@@ -187,3 +187,25 @@ Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (
   wrinkle this time: a `favicon.ico` 404 on the very first page load of a fresh browser
   profile is Chrome's own automatic favicon probe, unrelated to the app — don't mistake it
   for a real console error when checking a page for zero-error rendering.
+
+### 2026-08-10: per-tenant favicon + OG metadata (ADR-0011)
+
+- **SVG is not valid as an OG image.** `og:image` consumers (Facebook, Twitter/X, Slack,
+  WhatsApp link previews) require a raster format (PNG/JPG) — the only real brand assets
+  in this repo (`public/brand/*.svg`) can't be used there even for Forge Company, the one
+  tenant with real branding. `seo_og_image` stays null until a real raster asset exists;
+  the column and `generateMetadata` wiring were already correct and needed no code change.
+- **`metadataBase` is not optional once any tenant-scoped value is a relative URL.**
+  Confirmed against Next.js 16.2.9 docs (Context7): without it, Next resolves relative
+  icon/OG-image paths against `http://localhost:PORT` — its documented *production*
+  fallback too, not just a dev quirk. Since this app already stores relative `/public`
+  paths in DB columns (`header.logo.url`, now also `favicon_url`), omitting `metadataBase`
+  would have silently broken those paths in production. Set per-request from the resolved
+  tenant's domain, same pattern as every other tenant-scoped value in `app/layout.tsx`.
+- **A brand asset's "positive/negative" variant depends on where it's displayed, not on
+  the tenant's `theme_mode`.** Forge Company's dark page correctly uses `logo_negative.svg`
+  (light-on-dark) in its own header — but its favicon needed `icon_positive.svg`
+  (dark-fill), the opposite variant, because favicons render in browser tab/bookmark
+  chrome, which is light regardless of the page's own theme. Checking the two SVGs' actual
+  fill colors (`#2B2116` vs `#F3EADB`) before picking one caught this; the naming
+  convention alone would have led to the wrong (invisible-on-white) choice.
