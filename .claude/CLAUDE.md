@@ -8,8 +8,8 @@
 
 **forge-pages** is a multi-tenant SaaS platform that sells landing pages as a product to clients. Each client gets a landing page served on their own domain (e.g. `lp.cliente.com.br`). A single Next.js app serves all clients — the tenant is resolved from the `Host` header on every request. Content (blocks, copy, colors) lives as a typed JSON array in Supabase, edited directly via Supabase Studio (no CMS). Leads captured on landing pages are inserted straight into Supabase; the founder views them in Supabase Studio.
 
-**GitHub org**: `forgecompany-tech`
-**Repository**: `forgecompany-tech/forge-pages`
+**GitHub account**: `rafaeldellaquila`
+**Repository**: `rafaeldellaquila/forge-pages`
 **Language standard**: All code, comments, variables, functions, filenames, database columns, API fields, and git messages in **English**. User-facing content (landing page text) in Portuguese.
 
 **MVP rewrite (2026-08-04, ADR-0007)**: this project previously ran Nuxt 4 + Vue + Strapi 5 + NocoDB + PostHog + Sentry + Flipt + a VPS — dropped for a leaner MVP (zero paying clients at the time; cost/complexity had stalled progress). Historical learnings from that stack: `docs/HISTORY.md`. Full rationale: `docs/adr/0007-drop-strapi-nocodb-observability-vps.md` and `.claude/docs/MVP_REWRITE_CONTEXT.md`.
