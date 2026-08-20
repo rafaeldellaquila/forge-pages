@@ -48,3 +48,32 @@ export const WithoutStepLabels: Story = {
     cards: Default.args.cards.map((card) => ({ ...card, stepLabel: undefined })),
   },
 }
+
+export const Timeline: Story = {
+  args: {
+    ...Default.args,
+    variant: 'timeline',
+    eyebrow: 'Como funciona',
+    headline: 'Do agendamento ao acompanhamento',
+    cards: [
+      {
+        stepLabel: 'Passo 01',
+        icon: '📋',
+        title: 'Avaliação',
+        description: 'Entendemos seu caso e definimos o protocolo ideal.',
+      },
+      {
+        stepLabel: 'Passo 02',
+        icon: '🗓️',
+        title: 'Procedimento',
+        description: 'Executamos com equipe especializada e tecnologia própria.',
+      },
+      {
+        stepLabel: 'Passo 03',
+        icon: '📈',
+        title: 'Acompanhamento',
+        description: 'Seguimos com você até o resultado final.',
+      },
+    ],
+  },
+}

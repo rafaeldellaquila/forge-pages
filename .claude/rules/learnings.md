@@ -209,3 +209,33 @@ Historical, stack-specific learnings from the Nuxt/Vue/Strapi/NocoDB/VPS build (
   chrome, which is light regardless of the page's own theme. Checking the two SVGs' actual
   fill colors (`#2B2116` vs `#F3EADB`) before picking one caught this; the naming
   convention alone would have led to the wrong (invisible-on-white) choice.
+
+### 2026-08-19: competitor-research block additions (ADR-0012)
+
+- **`pnpm exec biome check .` (no `rtk proxy`) silently missed two real errors**
+  that the pre-commit hook (`husky` + `lint-staged`, which invokes
+  `biome check --write --no-errors-on-unmatched` on staged files) caught immediately:
+  a `biome-ignore` comment that no longer sat directly above the flagged line after
+  a JSX attribute wrapped (`noArrayIndexKey` in a new component), and a real
+  formatter diff in another new file. Both `pnpm exec biome check .` runs during
+  development printed a clean "Lint: No issues found" for the exact same file
+  content the hook later rejected. `rtk proxy pnpm exec biome check .` reproduced
+  the hook's real output (errors and all) on the same tree. **Treat a plain
+  `pnpm exec biome …` result as unverified — always confirm with `rtk proxy` (or
+  trust the pre-commit hook itself) before reporting lint as clean**, per the
+  global rtk guidance that unproxied output can't be trusted when it matters.
+- **A `biome-ignore` suppression comment must sit immediately above the exact
+  line carrying the diagnostic, not above the JSX element that contains it** —
+  wrapping `<figure key={index} ...>` onto multiple lines during a `--write` pass
+  moved `key={index}` one line below the comment, and the suppression silently
+  stopped applying (reported as "has no effect" rather than as the original
+  violation reappearing). Prefer a content-derived key over an index +
+  suppression where one is available at all (here, `beforeImage.url`+
+  `afterImage.url` was already unique per item) — it sidesteps the fragility
+  entirely rather than fixing it.
+- **Biome's `lint/a11y/useAnchorContent` does not accept `aria-label` alone as
+  sufficient content on an icon-only `<a>`** (the floating WhatsApp button, whose
+  only child was an `aria-hidden` emoji span) — it wants actual accessible
+  content in the tree. Fixed with a `sr-only` text span alongside the
+  `aria-hidden` icon, the standard icon-only-link pattern; `aria-label` on the
+  anchor was left in place too since it doesn't hurt and some AT paths still read it.

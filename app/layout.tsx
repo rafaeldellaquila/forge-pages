@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import './globals.css'
+import { FloatingWhatsapp } from '@/components/FloatingWhatsapp'
 import { resolveBackground, resolveBackgroundBaseColor } from '@/lib/background'
 import { fontVariableClassNames, resolveFontFamily } from '@/lib/fonts'
 import { getCurrentTenant } from '@/lib/tenant'
@@ -58,6 +59,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="pt-BR" className={fontVariableClassNames} style={tenantTheme}>
       <body className={background.className} style={background.style}>
         {children}
+        {tenant?.whatsappFloatEnabled && tenant.whatsappFloatNumber ? (
+          <FloatingWhatsapp
+            number={tenant.whatsappFloatNumber}
+            message={tenant.whatsappFloatMessage}
+          />
+        ) : null}
       </body>
     </html>
   )

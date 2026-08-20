@@ -19,7 +19,8 @@ const LANDING_PAGE_COLUMNS = `
   primary_color, secondary_color, font_family, secondary_font_family, theme_mode,
   background_type, background_color_token, background_color_custom,
   background_gradient_to_token, background_gradient_to_custom, background_image_url,
-  divider_glyph, blocks
+  divider_glyph, whatsapp_float_enabled, whatsapp_float_number, whatsapp_float_message,
+  blocks
 `
 
 interface LandingPageRow {
@@ -45,6 +46,9 @@ interface LandingPageRow {
   background_gradient_to_custom: string | null
   background_image_url: string | null
   divider_glyph: string | null
+  whatsapp_float_enabled: boolean
+  whatsapp_float_number: string | null
+  whatsapp_float_message: string | null
   blocks: unknown
 }
 
@@ -121,6 +125,9 @@ export const getLandingPageByHost = cache(
       themeMode: data.theme_mode === 'light' ? 'light' : 'dark',
       background: toBackground(data),
       dividerGlyph: data.divider_glyph,
+      whatsappFloatEnabled: data.whatsapp_float_enabled,
+      whatsappFloatNumber: data.whatsapp_float_number,
+      whatsappFloatMessage: data.whatsapp_float_message,
       blocks: parseBlocks(data.blocks, data.domain),
     }
   },

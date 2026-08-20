@@ -76,6 +76,7 @@ const statsSchema = z.object({
 const valuePropositionSchema = z.object({
   type: z.literal('value-proposition'),
   anchorId: z.string().optional(),
+  variant: variantSchema(['default', 'timeline']),
   eyebrow: z.string().optional(),
   headline: z.string(),
   text: z.string().optional(),
@@ -182,6 +183,84 @@ const pricingSchema = z.object({
   note: z.string().optional(),
 })
 
+const faqSchema = z.object({
+  type: z.literal('faq'),
+  anchorId: z.string().optional(),
+  eyebrow: z.string().optional(),
+  headline: z.string(),
+  text: z.string().optional(),
+  items: z.array(z.object({ question: z.string(), answer: z.string() })),
+})
+
+const locationsSchema = z.object({
+  type: z.literal('locations'),
+  anchorId: z.string().optional(),
+  eyebrow: z.string().optional(),
+  headline: z.string(),
+  items: z.array(
+    z.object({
+      icon: z.string().optional(),
+      city: z.string(),
+      address: z.string(),
+      mapLink: z.string().optional(),
+    }),
+  ),
+})
+
+const productGridSchema = z.object({
+  type: z.literal('product-grid'),
+  anchorId: z.string().optional(),
+  headline: z.string(),
+  subheadline: z.string().optional(),
+  items: z.array(
+    z.object({
+      image: imageSchema,
+      badge: z.string().optional(),
+      name: z.string(),
+      subtitle: z.string().optional(),
+      specs: z.array(z.string()).optional(),
+      priceLabel: z.string().optional(),
+      price: z.string().optional(),
+      ctaLabel: z.string(),
+      ctaLink: z.string().optional(),
+      ctaWhatsapp: z.string().optional(),
+      ctaMessage: z.string().optional(),
+    }),
+  ),
+  viewAllLabel: z.string().optional(),
+  viewAllLink: z.string().optional(),
+})
+
+const beforeAfterSchema = z.object({
+  type: z.literal('before-after'),
+  anchorId: z.string().optional(),
+  headline: z.string().optional(),
+  subheadline: z.string().optional(),
+  items: z.array(
+    z.object({
+      beforeImage: imageSchema,
+      afterImage: imageSchema,
+      caption: z.string().optional(),
+    }),
+  ),
+})
+
+const comparisonTableSchema = z.object({
+  type: z.literal('comparison-table'),
+  anchorId: z.string().optional(),
+  eyebrow: z.string().optional(),
+  headline: z.string(),
+  subheadline: z.string().optional(),
+  columns: z.array(
+    z.object({
+      title: z.string(),
+      badge: z.string().optional(),
+      featured: z.boolean().optional(),
+      rows: z.array(z.object({ text: z.string(), positive: z.boolean() })),
+    }),
+  ),
+})
+
 export const blockSchema = z.discriminatedUnion('type', [
   headerSchema,
   heroSchema,
@@ -194,6 +273,11 @@ export const blockSchema = z.discriminatedUnion('type', [
   ctaFormSchema,
   footerSchema,
   pricingSchema,
+  faqSchema,
+  locationsSchema,
+  productGridSchema,
+  beforeAfterSchema,
+  comparisonTableSchema,
 ])
 
 export const blocksSchema = z.array(blockSchema)

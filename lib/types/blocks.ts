@@ -44,6 +44,9 @@ export interface LandingPageConfig {
   themeMode: 'dark' | 'light'
   background: Background | null
   dividerGlyph: string | null
+  whatsappFloatEnabled: boolean
+  whatsappFloatNumber: string | null
+  whatsappFloatMessage: string | null
   blocks: BlockType[]
 }
 
@@ -126,9 +129,12 @@ export interface StatsBlock {
   items: { number: string; label: string }[]
 }
 
+export type ValuePropositionVariant = 'default' | 'timeline'
+
 export interface ValuePropositionBlock {
   type: 'value-proposition'
   anchorId?: string
+  variant?: ValuePropositionVariant
   eyebrow?: string
   headline: string
   text?: string
@@ -218,6 +224,71 @@ export interface PricingBlock {
   note?: string
 }
 
+export interface FaqBlock {
+  type: 'faq'
+  anchorId?: string
+  eyebrow?: string
+  headline: string
+  text?: string
+  items: { question: string; answer: string }[]
+}
+
+export interface LocationsBlock {
+  type: 'locations'
+  anchorId?: string
+  eyebrow?: string
+  headline: string
+  items: { icon?: string; city: string; address: string; mapLink?: string }[]
+}
+
+export interface ProductGridBlock {
+  type: 'product-grid'
+  anchorId?: string
+  headline: string
+  subheadline?: string
+  items: {
+    image: { url: string; alternativeText?: string }
+    badge?: string
+    name: string
+    subtitle?: string
+    specs?: string[]
+    priceLabel?: string
+    price?: string
+    ctaLabel: string
+    ctaLink?: string
+    ctaWhatsapp?: string
+    ctaMessage?: string
+  }[]
+  viewAllLabel?: string
+  viewAllLink?: string
+}
+
+export interface BeforeAfterBlock {
+  type: 'before-after'
+  anchorId?: string
+  headline?: string
+  subheadline?: string
+  items: {
+    beforeImage: { url: string; alternativeText?: string }
+    afterImage: { url: string; alternativeText?: string }
+    caption?: string
+  }[]
+}
+
+export interface ComparisonTableBlock {
+  type: 'comparison-table'
+  anchorId?: string
+  eyebrow?: string
+  headline: string
+  subheadline?: string
+  columns: {
+    title: string
+    badge?: string
+    featured?: boolean
+    rows: { text: string; positive: boolean }[]
+  }[]
+}
+
 export type BlockType =
   | HeaderBlock
   | HeroBlock
@@ -230,3 +301,8 @@ export type BlockType =
   | CtaFormBlock
   | FooterBlock
   | PricingBlock
+  | FaqBlock
+  | LocationsBlock
+  | ProductGridBlock
+  | BeforeAfterBlock
+  | ComparisonTableBlock

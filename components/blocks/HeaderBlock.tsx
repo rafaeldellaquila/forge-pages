@@ -2,6 +2,7 @@ import { CtaButton } from '@/components/blocks/shared/CtaButton'
 import { MobileMenu } from '@/components/blocks/shared/MobileMenu'
 import { HEADER_BACKGROUND_FALLBACK, resolveBackground } from '@/lib/background'
 import type { HeaderBlock as HeaderBlockProps } from '@/lib/types/blocks'
+import { buildWhatsappLink } from '@/lib/whatsapp'
 
 /** WhatsApp deep link, or the plain link when no number is configured. */
 function resolveCtaHref({
@@ -9,11 +10,7 @@ function resolveCtaHref({
   ctaMessage,
   ctaLink,
 }: Pick<HeaderBlockProps, 'ctaWhatsapp' | 'ctaMessage' | 'ctaLink'>) {
-  if (ctaWhatsapp) {
-    const text = ctaMessage ? `?text=${encodeURIComponent(ctaMessage)}` : ''
-    return `https://wa.me/${ctaWhatsapp}${text}`
-  }
-
+  if (ctaWhatsapp) return buildWhatsappLink(ctaWhatsapp, ctaMessage)
   return ctaLink ?? '#contato'
 }
 

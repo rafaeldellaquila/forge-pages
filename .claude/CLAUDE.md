@@ -99,11 +99,12 @@ theme_mode ('dark'|'light', default 'dark')
 background_type, background_color_token, background_color_custom,
 background_gradient_to_token, background_gradient_to_custom, background_image_url,
 divider_glyph
+whatsapp_float_enabled (default false), whatsapp_float_number, whatsapp_float_message
 blocks jsonb not null default '[]'   -- typed block array, validated with Zod on fetch
 created_at, updated_at
 ```
 
-`background_*`/`divider_glyph` are the page-level tenant background layer (ADR-0005); per-block overrides live inline in each block's JSON (see §6). `theme_mode` selects the neutral color ramp (ADR-0010).
+`background_*`/`divider_glyph` are the page-level tenant background layer (ADR-0005); per-block overrides live inline in each block's JSON (see §6). `theme_mode` selects the neutral color ramp (ADR-0010). `whatsapp_float_*` render a fixed floating contact button (page chrome, not a block — ADR-0012).
 
 ### leads
 ```sql
@@ -118,7 +119,7 @@ status ('new'|'contacted'|'converted'|'lost'), created_at
 
 ## 6. Block Types (JSON, Zod-validated)
 
-Blocks live in `landing_pages.blocks` (JSONB array), typed in `lib/types/blocks.ts` and validated in `lib/schemas/blocks.ts`. All eleven types have components; `BlockRenderer` maps every one. Full type table, the `Background` shape, `anchorId` convention, and theming detail: `.claude/rules/blocks.md`.
+Blocks live in `landing_pages.blocks` (JSONB array), typed in `lib/types/blocks.ts` and validated in `lib/schemas/blocks.ts`. All sixteen types have components; `BlockRenderer` maps every one. Full type table, the `Background` shape, `anchorId` convention, and theming detail: `.claude/rules/blocks.md`.
 
 ## 7. Lead Flow
 

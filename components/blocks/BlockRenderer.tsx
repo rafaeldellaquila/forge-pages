@@ -1,9 +1,14 @@
+import { BeforeAfterBlock } from '@/components/blocks/BeforeAfterBlock'
+import { ComparisonTableBlock } from '@/components/blocks/ComparisonTableBlock'
 import { CtaFormBlock } from '@/components/blocks/CtaFormBlock'
 import { DifferentialsBlock } from '@/components/blocks/DifferentialsBlock'
+import { FaqBlock } from '@/components/blocks/FaqBlock'
 import { FooterBlock } from '@/components/blocks/FooterBlock'
 import { HeaderBlock } from '@/components/blocks/HeaderBlock'
 import { HeroBlock } from '@/components/blocks/HeroBlock'
+import { LocationsBlock } from '@/components/blocks/LocationsBlock'
 import { PricingBlock } from '@/components/blocks/PricingBlock'
+import { ProductGridBlock } from '@/components/blocks/ProductGridBlock'
 import { ServicesBlock } from '@/components/blocks/ServicesBlock'
 import { StatsBlock } from '@/components/blocks/StatsBlock'
 import { Seam } from '@/components/blocks/shared/Seam'
@@ -19,7 +24,7 @@ import type { BlockType } from '@/lib/types/blocks'
 // A switch rather than a lookup object: it narrows the discriminated union to
 // each component's own props, so the mapping is checked instead of asserted.
 //
-// All eleven types lib/schemas/blocks.ts validates now have a component. A
+// All sixteen types lib/schemas/blocks.ts validates now have a component. A
 // valid-but-unmapped type still renders nothing rather than breaking the page —
 // that fallback stays in place for any future block type added ahead of its
 // component.
@@ -47,6 +52,16 @@ function renderBlock(block: BlockType) {
       return <CtaFormBlock {...block} />
     case 'footer':
       return <FooterBlock {...block} />
+    case 'faq':
+      return <FaqBlock {...block} />
+    case 'locations':
+      return <LocationsBlock {...block} />
+    case 'product-grid':
+      return <ProductGridBlock {...block} />
+    case 'before-after':
+      return <BeforeAfterBlock {...block} />
+    case 'comparison-table':
+      return <ComparisonTableBlock {...block} />
     default:
       return null
   }
